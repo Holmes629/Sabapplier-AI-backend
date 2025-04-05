@@ -28,7 +28,7 @@ AIVEN_SERVICE_PASSWORD = os.getenv("AIVEN_SERVICE_PASSWORD")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["https://sabapplier-ai-backend.onrender.com/"]
 
 
 # Application definition
@@ -112,15 +112,17 @@ AUTH_PASSWORD_VALIDATORS = [
 # White listing the localhost:3000 port
 # for React
 CORS_ORIGIN_WHITELIST = (
+    "https://sabapplier-ai-backend.onrender.com/",
     'http://localhost:3000',
 )
 CORS_ALLOWED_ORIGINS = [
+    "https://sabapplier-ai-backend.onrender.com/",
     "http://localhost:3000",  # Allow frontend to access backend
 ]
 
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies and authentication
 
-CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]  # Prevent CSRF issues
+CSRF_TRUSTED_ORIGINS = ["https://sabapplier-ai-backend.onrender.com/", "http://localhost:3000"]  # Prevent CSRF issues
 
 
 # Internationalization
