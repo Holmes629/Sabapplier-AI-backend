@@ -23,12 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-ynw%r6t5@)=uoz@os#k54f5tz(06w^5gr9)k95)ua3rdp1#a3k'
-AIVEN_SERVICE_PASSWORD = os.getenv("AIVEN_SERVICE_PASSWORD")
+AIVEN_SERVICE_PASSWORD= 'AVNS_ONEe9noXWfbeA_-Vjf3'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["sabapplier-ai-backend.onrender.com"]
+ALLOWED_HOSTS = ["sabapplier-ai-backend.onrender.com", "127.0.0.1"]
 
 
 # Application definition
