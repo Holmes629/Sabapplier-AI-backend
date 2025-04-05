@@ -28,7 +28,7 @@ AIVEN_SERVICE_PASSWORD = os.getenv("AIVEN_SERVICE_PASSWORD")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["https://sabapplier-ai-backend.onrender.com/"]
+ALLOWED_HOSTS = ["sabapplier-ai-backend.onrender.com"]
 
 
 # Application definition
