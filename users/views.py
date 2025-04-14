@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from rest_framework import viewsets
 from .serializers import UserSerializer
 from .models import user, Token
+from .apis.fetch_autofill_data import get_autofill_data
 
 class users_view(viewsets.ModelViewSet):
     serializer_class = UserSerializer
@@ -18,13 +19,9 @@ User = get_user_model()
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
-    print('im inside views.register')
-    print('request.data', request.data)
     serializer = UserSerializer(data=request.data)
-    print('serializer', serializer)
     if serializer.is_valid():
         serializer.save()
-        print('serializer.data', serializer.data)
         return Response(
             {"success": True, "message": "You are now registered on our website!"},
             status=status.HTTP_200_OK,
@@ -75,3 +72,32 @@ def get_profile(request):
         return Response({"message": "Profile fetched successfully", "user_data": serializer.data}, status=status.HTTP_200_OK) 
     except:
         return Response({"error": "profile failed to load"}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def auto_fill(request):
+    try:
+        url_link = request.data['link']
+        user_data = request.data['user_data']
+        autofill_data = get_autofill_data(url_link, user_data)
+        return Response({"message": "Auto-fill successful", "autofill_data": autofill_data}, status=status.HTTP_200_OK)
+    except:
+        return Response({"error": "Auto-fill failed"}, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def auto_fill_extension(request):
+    try:
+        html_data = request.data['html_data']
+        user_email = request.data['user_email']
+        try:
+            usr = user.objects.get(email=user_email)
+            user_data = UserSerializer(usr).data
+            autofill_data = get_autofill_data(html_data, user_data)
+            return Response({"message": "Auto-fill successful", "autofill_data": autofill_data}, status=status.HTTP_200_OK)
+        except user.DoesNotExist:
+            print('User does not exist...')
+            return Response({"message": "User not found", "autofill_data": {}}, status=status.HTTP_200_OK)
+    except:
+        return Response({"error": "Auto-fill failed"}, status=status.HTTP_400_BAD_REQUEST)
+ 

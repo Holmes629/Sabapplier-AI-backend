@@ -112,11 +112,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # White listing the localhost:3000 port
 # for React
 CORS_ORIGIN_WHITELIST = (
-    "https://sabapplier-ai-backend.onrender.com/",
+    # "https://sabapplier-ai-backend.onrender.com/",
     'http://localhost:3000',
 )
 CORS_ALLOWED_ORIGINS = [
-    "https://sabapplier-ai-backend.onrender.com/",
+    # "https://sabapplier-ai-backend.onrender.com/",
     "http://localhost:3000",  # Allow frontend to access backend
 ]
 
