@@ -118,6 +118,10 @@ CORS_ORIGIN_WHITELIST = (
 CORS_ALLOWED_ORIGINS = [
     "https://holmes629.github.io/SabApplier-AI/",
     "http://localhost:3000",  # Allow frontend to access backend
+] 
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^chrome-extension://.+$",  # allow all extensions temporarily
+    r"^http://localhost:.*$",    # if testing via localhost too
 ]
 
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies and authentication
