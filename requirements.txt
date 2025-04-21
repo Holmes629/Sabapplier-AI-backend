@@ -18,8 +18,6 @@ exceptiongroup==1.2.2
 google-ai-generativelanguage==0.6.15
 google-api-core
 google-api-python-client
-google-auth
-google-auth-httplib2
 google-cloud-aiplatform
 google-cloud-core
 google-cloud-resource-manager
