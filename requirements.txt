@@ -21,7 +21,6 @@ google-api-python-client
 google-auth
 google-auth-httplib2
 google-cloud-aiplatform
-google-cloud-bigquer
 google-cloud-core
 google-cloud-resource-manager
 google-cloud-storage
