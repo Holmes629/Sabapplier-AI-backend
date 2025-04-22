@@ -78,7 +78,8 @@ def get_profile(request):
         user_data['pan_card'] = user_data['pan_card'].replace( "&export=download", "/view")
         print('user_data:', user_data)
         return Response({"message": "Profile fetched successfully", "user_data": user_data}, status=status.HTTP_200_OK) 
-    except:
+    except Exception as err:
+        print(err)
         return Response({"error": "profile failed to load"}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
@@ -89,7 +90,8 @@ def auto_fill(request):
         user_data = request.data['user_data']
         autofill_data = get_autofill_data(url_link, user_data)
         return Response({"message": "Auto-fill successful", "autofill_data": autofill_data}, status=status.HTTP_200_OK)
-    except:
+    except Exception as err:
+        print(err)
         return Response({"error": "Auto-fill failed"}, status=status.HTTP_400_BAD_REQUEST)
     
 @api_view(['POST'])
@@ -111,6 +113,7 @@ def auto_fill_extension(request):
         except user.DoesNotExist:
             print('User does not exist...')
             return Response({"message": "User not found", "autofill_data": {}}, status=status.HTTP_200_OK)
-    except:
+    except Exception as err:
+        print('Error:', err)
         return Response({"error": "Auto-fill failed"}, status=status.HTTP_400_BAD_REQUEST)
  
