@@ -28,24 +28,42 @@ def get_text_from_ocr(fh, file_name):
         doc_text += line['LineText'] + "\n"
     return doc_text
 
-def dropbox_url_to_path(shared_url):
+def dropbox_url_to_path(shared_url, dropbox_access_token):
     """
     Convert a Dropbox shared URL to a file path for the API.
     """
     try:
         # Get shared link metadata to extract path
-        dbx = dropbox.Dropbox(settings.DROPBOX_ACCESS_TOKEN)
+        dbx = dropbox.Dropbox(dropbox_access_token)
         res = dbx.sharing_get_shared_link_metadata(shared_url)
         return res.path_lower  # This gives the API-compatible path
     except Exception as e:
         print("❌ Failed to get Dropbox path from URL:", e)
         return None
 
+def get_fresh_dropbox_access_token():
+    url = "https://api.dropboxapi.com/oauth2/token"
+    data = {
+        "grant_type": "refresh_token",
+        "refresh_token": settings.DROPBOX_REFRESH_TOKEN,
+        "client_id": settings.DROPBOX_CLIENT_ID,
+        "client_secret": settings.DROPBOX_CLIENT_SECRET,
+    }
+
+    response = requests.post(url, data=data)
+    if response.status_code == 200:
+        return response.json()["access_token"]
+    else:
+        raise Exception("Failed to refresh Dropbox token: " + response.text)
+
 def get_file_from_dropbox_and_return_ocr_data(file_url):
     print("📥 Fetching file from Dropbox for OCR...")
-    file_path = dropbox_url_to_path(file_url)
+    # Step 0: GET dropbox access token by refreshing it
+    dropbox_access_token = get_fresh_dropbox_access_token()
+    
+    file_path = dropbox_url_to_path(file_url, dropbox_access_token)
     # Step 1: Dropbox Auth
-    dbx = dropbox.Dropbox(settings.DROPBOX_ACCESS_TOKEN)
+    dbx = dropbox.Dropbox(dropbox_access_token)
 
     # Step 2: Download file to memory
     try:
