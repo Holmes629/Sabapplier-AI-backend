@@ -1,13 +1,28 @@
 # dropbox_storage.py
 import dropbox
+import requests
 from django.core.files.storage import Storage
-from django.core.files.base import ContentFile
 from django.conf import settings
 
 class DropboxStorage(Storage):
     def __init__(self):
-        self.client = dropbox.Dropbox(settings.DROPBOX_ACCESS_TOKEN)
+        self.client = dropbox.Dropbox(self.get_fresh_dropbox_access_token())
     
+    def get_fresh_dropbox_access_token(self):
+        url = "https://api.dropboxapi.com/oauth2/token"
+        data = {
+            "grant_type": "refresh_token",
+            "refresh_token": settings.DROPBOX_REFRESH_TOKEN,
+            "client_id": settings.DROPBOX_CLIENT_ID,
+            "client_secret": settings.DROPBOX_CLIENT_SECRET,
+        }
+
+        response = requests.post(url, data=data)
+        if response.status_code == 200:
+            return response.json()["access_token"]
+        else:
+            raise Exception("Failed to refresh Dropbox token: " + response.text)
+        
     def get_available_name(self, name, max_length=None):
         # Always return the same name to enforce overwriting
         return name
