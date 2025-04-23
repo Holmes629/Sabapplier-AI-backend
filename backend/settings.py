@@ -27,12 +27,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-ynw%r6t5@)=uoz@os#k54f5tz(06w^5gr9)k95)ua3rdp1#a3k'
 AIVEN_SERVICE_PASSWORD= 'AVNS_1YyoLCsZN4Ojj630rl4'
-# AIVEN_SERVICE_PASSWORD = os.getenv('AIVEN_SERVICE_PASSWORD')
 
 
 # Google Drive Storage Settings
-# DROPBOX_ACCESS_TOKEN = os.getenv('DROPBOX_ACCESS_TOKEN')
-DROPBOX_ACCESS_TOKEN = 'sl.u.AFpTWu_sMiM9hYzunJgbzRm4IXBPG5VD3vR5asrpYIj-pPXQecqkTvidLCeYU8KFe4qH3ucc4YHk7r5qUOx79evhH4Tw3JJTNA_HU_CDftk2SvwZ-_iPVPM_z1men6NBDtuyI6zdkmJ6dG7iMHohEKpjDJ5HOnuZAXRxY4sdvzi-Z6NfZqAjNPbc7QSW3G11ZW8PPlKxjuK9UqVRjGjJjxIPWPHMRmWWXc8Vm5PZzj0XzGFmzxFRJk3Xq6vE8jXcAjNLr-rKw5NIYYVBvrCmKGlu6PAnlEF-AohA5vdwveODGeb0C4QlX7ytDR3eYEv3qeIliSuWpVsaesEDyk4B2ewt1bKHUPi5Y76jd5usXk4eYjEzSvCysznvKWEh54scVnsHvAY_1GkXQa_2BRI4Mzst7F7Ag0mtsVmHCsFb1friNAJJh9wG8bGyTgGrl9uSRD2w5-G3KEZnJUwxWx0ofo5IcYwH8Z3w7Qqdddw9ArteXDHf3fC-ZtNwgmhvmw4aGkObP7a9TghudokRJJGIvycoCU5pKOvhRES-KXS-uSFm3PBB4QtIyeeaEUaD8w2wR249eL6PYF_ZyOtgSMsW-xTewluQ2PpSvch1gKNkV2XF7W8yWEfLlKJ8mQ11N8xce6YzphfUCOON337rGfxe_4WGwJj7f8oG7yZrShM1G7u9NxAAY6Uan1LTDUymHQApOA0KR38hggbWO0XvO01rQqMP9xZiaVEB4fnRVS9UW7wPSM_3VoQ6B-40j6v8SjJrb4ckYTmPvPPoJOqOSJpMLAVJY8Vh_zy4YTOpBivUVuvxqx0tUr3NsRUhvtd8KDio2xTLLHNqsom8qtjQ7WWIIHGHSi9um1W1OvDRIEwacuPdzq0ijRaZ1_oFdzzeVK2P9GJtWg4TPY0sWaf1Npe6KnPvFUZMohh8ZlF-6aT9a1jzthTMpXRWMruUGcFwPJCidRCNrRshob_7cn4JGlLduk0b6arRdgh-WcYEETDvNeC4FVpWoW-r6Lg02i0umrTsBz309H7fF3q0oUevtvvQtq2TezlTgQUmjK2MbQZ8OVpX2Q72dQ3rR_xcavzwTxq4UPxp66SQNcmPh7Ggz-uj4zHqWgaycfFDS1Fmx6-sgbiQJQb4v9JnCB_ljUgOleGQjQtBy8VgjByu6Ke8EQPfaZRDAamr8dFl2I_7Wi0B46X3ll7GzULD8gQlOk3bJ8ad0TDluVA2xasvHmmd2gtU-shzWEsPWCpQE1zZKHy4N1sv4GEBGYLz8uaO89s3qnZb28S-1Nk6GxeX_UUSZ1Hx7LwMiL-OxwwZ_ASTm1doX_o5BFvKgsOou3TFN6dAn-2zJDTvoF2Vb6Iq6-ZOwxXenXJQggD7z1hYjIidS1tYLtAHQNvhKxpsW6wxxHm_XYaxuwBagMm4VD1mi6SbXwlNlXwa'
+DROPBOX_CLIENT_ID  = 'bmss0fq156sndxd'
+DROPBOX_CLIENT_SECRET  = '2n2afrqw8g2cfbv'
+DROPBOX_REFRESH_TOKEN = "tyMQj8_akrMAAAAAAAAAAVjZ5UsXKq8hLM6_KyjrJ4upTLOip2AoYtx66-IwdxI9"
+
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -120,11 +122,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # White listing the localhost:3000 port
 # for React
 CORS_ORIGIN_WHITELIST = (
-    "https://holmes629.github.io/SabApplier-AI/",
+    # "https://holmes629.github.io/SabApplier-AI/",
     'http://localhost:3000',
 )
 CORS_ALLOWED_ORIGINS = [
-    "https://holmes629.github.io/SabApplier-AI/",
+    # "https://holmes629.github.io/SabApplier-AI/",
     "http://localhost:3000",  # Allow frontend to access backend
 ] 
 CORS_ALLOWED_ORIGIN_REGEXES = [
