@@ -8,7 +8,8 @@ from datetime import datetime, timedelta
 from rest_framework import viewsets
 from .serializers import UserSerializer
 from .models import user, Token
-from .apis.fetch_autofill_data import get_file_from_dropbox_and_return_ocr_data, get_autofill_data
+from .apis.ocr_endpoint import get_ocr_data
+from .apis.fetch_autofill_data import get_autofill_data
 
 class users_view(viewsets.ModelViewSet):
     serializer_class = UserSerializer
@@ -16,9 +17,44 @@ class users_view(viewsets.ModelViewSet):
     
 User = get_user_model()
 
+
+######################  API End Points for Website UI ####################
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
+    print(request.data)
+    
+    try:
+       request.data['aadhaar_card_text'] = get_ocr_data(request.FILES['aadhaar_card_file_url'])
+    except Exception as err:
+        print('Error with aadhaar card ocr scanning: ', err)
+        request.data['aadhaar_card_text'] = "NA"
+    try:
+        request.data['pan_card_text'] = get_ocr_data(request.FILES['pan_card_file_url'])
+    except Exception as err:
+        print('Error with pan card ocr scanning: ', err)
+        request.data['pan_card_text'] = "NA"
+        
+    try:
+        request.data['_10th_certificate_text'] = get_ocr_data(request.FILES['_10th_certificate_file_url'])
+    except Exception as err:
+        print('Error with 10th certificate ocr scanning: ', err)
+        request.data['_10th_certificate_text'] = "NA"
+        
+    try:
+        request.data['_12th_certificate_text'] = get_ocr_data(request.FILES['_12th_certificate_file_url'])
+    except Exception as err:
+        print('Error with 12th certificate ocr scanning: ', err)
+        request.data['_12th_certificate_text'] = "NA"
+        
+    try:
+        request.data['graduation_certificate_text'] = get_ocr_data(request.FILES['graduation_certificate_file_url'])
+    except Exception as err:
+        print('Error with graduation certificate ocr scanning: ', err)
+        request.data['graduation_certificate_text'] = "NA"
+        
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
@@ -39,7 +75,7 @@ def login_view(request):
             return Response(
                 {
                     "success": False,
-                    "message": "Invalid username or password Credentials!",
+                    "message": "Invalid user Credentials!",
                 },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
@@ -76,18 +112,12 @@ def get_profile(request):
         print(err)
         return Response({"error": "profile failed to load"}, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def auto_fill(request):
-    try:
-        url_link = request.data['link']
-        user_data = request.data['user_data']
-        autofill_data = get_autofill_data(url_link, user_data)
-        return Response({"message": "Auto-fill successful", "autofill_data": autofill_data}, status=status.HTTP_200_OK)
-    except Exception as err:
-        print(err)
-        return Response({"error": "Auto-fill failed"}, status=status.HTTP_400_BAD_REQUEST)
-    
+
+
+
+####################  API End Points for Extension ####################
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def auto_fill_extension(request):
@@ -98,15 +128,12 @@ def auto_fill_extension(request):
             usr = user.objects.get(email=user_email)
             user_data = UserSerializer(usr).data
             print('user_data:', user_data)
-            user_data['aadhaar_card'] = get_file_from_dropbox_and_return_ocr_data(user_data['aadhaar_card'])
-            user_data['pan_card'] = get_file_from_dropbox_and_return_ocr_data(user_data['pan_card'])
-            print('user_data:', user_data)
             autofill_data = get_autofill_data(html_data, user_data)
             print('autofill_data:', autofill_data)
             return Response({"message": "Auto-fill successful", "autofill_data": autofill_data}, status=status.HTTP_200_OK)
         except user.DoesNotExist:
             print('User does not exist...')
-            return Response({"message": "User not found", "autofill_data": {}}, status=status.HTTP_200_OK)
+            return Response({"message": "User not found", "autofill_data": {}}, status=status.HTTP_404_OK)
     except Exception as err:
         print('Error:', err)
         return Response({"error": "Auto-fill failed"}, status=status.HTTP_400_BAD_REQUEST)

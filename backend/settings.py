@@ -122,11 +122,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # White listing the localhost:3000 port
 # for React
 CORS_ORIGIN_WHITELIST = (
-    "https://holmes629.github.io/SabApplier-AI/",
+    # "https://holmes629.github.io/SabApplier-AI/",
     'http://localhost:3000',
 )
 CORS_ALLOWED_ORIGINS = [
-    "https://holmes629.github.io/SabApplier-AI/",
+    # "https://holmes629.github.io/SabApplier-AI/",
     "http://localhost:3000",  # Allow frontend to access backend
 ] 
 CORS_ALLOWED_ORIGIN_REGEXES = [

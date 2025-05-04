@@ -8,7 +8,7 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = user
-        fields = ['id', 'username', 'email', 'password', 'phone_number', 'profile_photo', 'aadhaar_card', 'pan_card', 'address', 'city', 'state', 'country', 'pincode']
+        fields = ['id', 'fullname', 'email', 'dateofbirth', 'password', 'phone_number', 'passport_size_photo_file_url', 'aadhaar_card_file_url', 'aadhaar_card_text', 'pan_card_file_url', 'pan_card_text', 'signature_file_url', '_10th_certificate_file_url', '_10th_certificate_text', '_12th_certificate_file_url', '_12th_certificate_text', 'graduation_certificate_file_url', 'graduation_certificate_text', 'address', 'city', 'state', 'country', 'pincode']
 
 class TokenSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,7 +21,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = user
-        fields = ('username', 'email', 'password')
+        fields = ('fullname', 'email', 'password')
 
     # def validate(self, attrs):
     #     if attrs['password'] != attrs['password2']:
@@ -30,7 +30,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('password')
-        if User.objects.filter(username=validated_data['username']).exists():
-            raise serializers.ValidationError({'username': 'This username is already taken.'})
+        if User.objects.filter(email=validated_data['email']).exists():
+            raise serializers.ValidationError({'email': 'This email is already registered...'})
         user = User.objects.create_user(**validated_data)
         return user 
