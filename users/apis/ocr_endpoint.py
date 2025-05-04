@@ -6,7 +6,12 @@ import cv2
 import fitz  # PyMuPDF
 from paddleocr import PaddleOCR
 
-ocr = PaddleOCR(use_angle_cls=True, lang='en')  # initialize once globally
+ocr = PaddleOCR(
+    use_angle_cls=True,
+    det_model_dir='./models/det/en_PP-OCRv3_det_infer',
+    rec_model_dir='./models/rec/en_PP-OCRv4_rec_infer',
+    lang='en'
+)
 
 def get_ocr_data(uploaded_file):
     uploaded_file.seek(0)
