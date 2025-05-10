@@ -38,7 +38,7 @@ DROPBOX_REFRESH_TOKEN = "tyMQj8_akrMAAAAAAAAAAVjZ5UsXKq8hLM6_KyjrJ4upTLOip2AoYtx
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["sabapplier-ai-backend.onrender.com", "127.0.0.1"]
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -122,11 +122,13 @@ AUTH_PASSWORD_VALIDATORS = [
 # White listing the localhost:3000 port
 # for React
 CORS_ORIGIN_WHITELIST = (
-    "https://holmes629.github.io/SabApplier-AI/",
+    "https://sabapplier.com",
+    "http://sabapplier.com",
     'http://localhost:3000',
 )
 CORS_ALLOWED_ORIGINS = [
-    "https://holmes629.github.io/SabApplier-AI/",
+    "https://sabapplier.com",
+    "http://sabapplier.com",
     "http://localhost:3000",  # Allow frontend to access backend
 ] 
 CORS_ALLOWED_ORIGIN_REGEXES = [
@@ -136,7 +138,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies and authentication
 
-CSRF_TRUSTED_ORIGINS = ["https://sabapplier-ai-backend.onrender.com/", "http://localhost:3000"]  # Prevent CSRF issues
+CSRF_TRUSTED_ORIGINS = ["*"]  # Prevent CSRF issues
 
 
 # Internationalization
