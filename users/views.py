@@ -6,7 +6,6 @@ from django.contrib.auth import get_user_model, authenticate, login, logout
 from .serializers import UserSerializer, TokenSerializer, UserRegistrationSerializer
 from datetime import datetime, timedelta
 from rest_framework import viewsets
-from .serializers import UserSerializer
 from .models import user, Token
 from .apis.ocr_endpoint import get_ocr_data
 from .apis.fetch_autofill_data import get_autofill_data
@@ -25,37 +24,12 @@ User = get_user_model()
 @permission_classes([AllowAny])
 def register(request):
     print(request.data)
-    
-    try:
-       request.data['aadhaar_card_text'] = get_ocr_data(request.FILES['aadhaar_card_file_url'])
-    except Exception as err:
-        print('Error with aadhaar card ocr scanning: ', err)
-        request.data['aadhaar_card_text'] = "NA"
-    try:
-        request.data['pan_card_text'] = get_ocr_data(request.FILES['pan_card_file_url'])
-    except Exception as err:
-        print('Error with pan card ocr scanning: ', err)
-        request.data['pan_card_text'] = "NA"
-        
-    try:
-        request.data['_10th_certificate_text'] = get_ocr_data(request.FILES['_10th_certificate_file_url'])
-    except Exception as err:
-        print('Error with 10th certificate ocr scanning: ', err)
-        request.data['_10th_certificate_text'] = "NA"
-        
-    try:
-        request.data['_12th_certificate_text'] = get_ocr_data(request.FILES['_12th_certificate_file_url'])
-    except Exception as err:
-        print('Error with 12th certificate ocr scanning: ', err)
-        request.data['_12th_certificate_text'] = "NA"
-        
-    try:
-        request.data['graduation_certificate_text'] = get_ocr_data(request.FILES['graduation_certificate_file_url'])
-    except Exception as err:
-        print('Error with graduation certificate ocr scanning: ', err)
-        request.data['graduation_certificate_text'] = "NA"
-        
-    serializer = UserSerializer(data=request.data)
+    # Ignore extra fields and only process email and password (and confirmPassword if present)
+    allowed_fields = {'email', 'password', 'confirmPassword'}
+    data = {k: v for k, v in request.data.items() if k in allowed_fields}
+    if 'confirmPassword' in data and data['password'] != data['confirmPassword']:
+        return Response({'success': False, 'message': 'Passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
+    serializer = UserSerializer(data=data)
     if serializer.is_valid():
         serializer.save()
         return Response(
@@ -63,6 +37,32 @@ def register(request):
             status=status.HTTP_200_OK,
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def update_data(request):
+    print(request.data)
+    print(request.data.get("email", ""))
+    try:
+        userData = request.data
+        usr = user.objects.filter(email=userData.get('email', "")).first()
+        for field_name, uploaded_file in request.FILES.items():
+            text_field_name = field_name.replace('_file_url', '_text')
+            userData[text_field_name] = get_ocr_data(uploaded_file)
+        serializer = UserSerializer(usr, data=userData, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"success": True, "message": "You are now registered on our website!"},
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as err:
+        print(err)
+        return Response(
+            {"success": False, "message": "error"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
