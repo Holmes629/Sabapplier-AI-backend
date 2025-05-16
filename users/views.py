@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model, authenticate, login, logout
@@ -117,9 +118,8 @@ def get_profile(request):
 
 ####################  API End Points for Extension ####################
 
-
+@csrf_exempt
 @api_view(['POST'])
-@permission_classes([AllowAny])
 def auto_fill_extension(request):
     try:
         html_data = request.data['html_data']
