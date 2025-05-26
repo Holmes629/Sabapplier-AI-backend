@@ -1,6 +1,5 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model, authenticate, login, logout
@@ -45,8 +44,12 @@ def update_data(request):
     print(request.data)
     print(request.data.get("email", ""))
     try:
-        userData = request.data
+        userData = request.data.copy()
         usr = user.objects.filter(email=userData.get('email', "")).first()
+        if (request.data.get("password", "")!=""):
+            usr.password= request.data.get("password", "")
+            usr.save()
+            userData.pop("password")
         for field_name, uploaded_file in request.FILES.items():
             text_field_name = field_name.replace('_file_url', '_text')
             userData[text_field_name] = get_ocr_data(uploaded_file)
@@ -64,7 +67,32 @@ def update_data(request):
             {"success": False, "message": "error"},
             status=status.HTTP_400_BAD_REQUEST
         )
+        
+        
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def delete_data(request):
+    print(request.data)
+    print(request.data.get("email", ""))
+    try:
+        userData = request.data.copy()
+        usr = user.objects.filter(email=userData.get('email', "")).first()
+        field = request.data.get('field')
 
+        if not field:
+            return Response({"error": "Field name required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if hasattr(usr, field):
+            setattr(usr, field, "")
+            setattr(usr, field.replace("_file_url", "_text"), "")
+            usr.save()
+            return Response({"success": True, "message": f"{field} deleted."}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Invalid field."}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
@@ -118,8 +146,9 @@ def get_profile(request):
 
 ####################  API End Points for Extension ####################
 
-@csrf_exempt
+
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def auto_fill_extension(request):
     try:
         html_data = request.data['html_data']
