@@ -126,11 +126,15 @@ AUTH_PASSWORD_VALIDATORS = [
 CORS_ORIGIN_WHITELIST = (
     "https://sabapplier.com",
     "http://sabapplier.com",
+    "https://www.sabapplier.com",
+    "http://www.sabapplier.com",
     'http://localhost:3000',
 )
 CORS_ALLOWED_ORIGINS = [
     "https://sabapplier.com",
     "http://sabapplier.com",
+    "https://www.sabapplier.com",
+    "http://www.sabapplier.com",
     "http://localhost:3000",  # Allow frontend to access backend
 ] 
 CORS_ALLOWED_ORIGIN_REGEXES = [
