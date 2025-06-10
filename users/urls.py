@@ -11,6 +11,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.get_profile, name='profile'),
     path('profile/<str:email>/', views.get_profile, name='profile'),
+    path('extension/login', views.extension_login_view, name='extension_login_view'),
     path('extension/auto-fill/', views.auto_fill_extension, name='auto-fill-extension'),
 ]
 

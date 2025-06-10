@@ -1,9 +1,5 @@
 from django.db import models
-from .dropbox_storage import DropboxStorage  # import your custom storage
 import os
-
-# Define drop box storage
-dropbox_storage = DropboxStorage()
 
 class Token(models.Model):
     id = models.AutoField(primary_key=True)
@@ -49,29 +45,50 @@ def graduation_certificate_upload_path(instance, filename):
     return os.path.join("graduation_certificate", filename)
    
 class user(models.Model):     
+    Gender_Choices = [
+        ('Select', 'Select'),
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    ]
+    Category_Choices = [
+        ('Select', 'Select'),
+        ('GEN', 'GEN'),
+        ('OBC', 'OBC'),
+        ('SC', 'SC'),
+        ('ST', 'ST'),
+        ('EWS', 'EWS'),
+    ]
+    MaritalStatus_Choices = [
+        ('Select', 'Select'),
+        ('Single', 'Single'),
+        ('Married', 'Married'),
+        ('Divorced', 'Divorced'),
+        ('Widowed', 'Widowed'),
+        ('Others', 'Others'),
+    ]
+    
+    
     # id = models.AutoField(primary_key=True)
-    fullname = models.CharField(max_length=255, null=True)
     email = models.EmailField(unique=True)
-    dateofbirth = models.DateField(null=True)
     password = models.CharField(max_length=255)
+    fullName = models.CharField(max_length=255, null=True)
+    fathersName = models.CharField(max_length=255, null=True)
+    mothersName = models.CharField(max_length=255, null=True)
+    gender = models.CharField(max_length=10, choices=Gender_Choices, default='Select')
+    dateofbirth = models.DateField(null=True)
+    category = models.CharField(max_length=10, choices=Category_Choices, default='Select')
+    disability = models.BooleanField(default=False)
+    nationality = models.CharField(max_length=255, null=True)
+    domicileState = models.CharField(max_length=255, null=True)
+    maritalStatus = models.CharField(max_length=255, choices=MaritalStatus_Choices, default='Select')
+    religion = models.CharField(max_length=255, null=True)
+    permanentAddress = models.TextField(null=True)
+    correspondenceAddress = models.TextField(null=True)
     phone_number = models.CharField(max_length=10, null=True)
-    passport_size_photo_file_url =models.FileField(upload_to=passport_size_photo_upload_path, storage=dropbox_storage, null=True)
-    aadhaar_card_file_url = models.FileField(upload_to=aadhaar_card_upload_path, storage=dropbox_storage, null=True)
-    aadhaar_card_text = models.TextField(null=True)
-    pan_card_file_url = models.FileField(upload_to=pan_card_upload_path, storage=dropbox_storage, null=True)
-    pan_card_text = models.TextField(null=True)
-    signature_file_url =  models.FileField(upload_to=signature_upload_path, storage=dropbox_storage, null=True)
-    _10th_certificate_file_url = models.FileField(upload_to=_10th_certificate_upload_path, storage=dropbox_storage, null=True)
-    _10th_certificate_text = models.TextField(null=True)
-    _12th_certificate_file_url = models.FileField(upload_to=_12th_certificate_upload_path, storage=dropbox_storage, null=True)
-    _12th_certificate_text = models.TextField(null=True)
-    graduation_certificate_file_url = models.FileField(upload_to=graduation_certificate_upload_path, storage=dropbox_storage, null=True)
-    graduation_certificate_text = models.TextField(null=True)
-    address = models.TextField(null=True)
-    city = models.CharField(max_length=150, null=True)
-    state = models.CharField(max_length=150, null=True)
-    country = models.CharField(max_length=63, null=True)
-    pincode = models.IntegerField(null=True)
+    alt_phone_number = models.CharField(max_length=10, null=True)
+    document_urls = models.JSONField(default=dict, null=True)
+    document_texts = models.JSONField(default=dict, null=True)
 
     def __str__(self):
         return self.email
