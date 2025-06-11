@@ -189,7 +189,7 @@ def extension_login_view(request):
         email = request.data.get('user_email')
         password = request.data.get('user_password')
         try:
-            usr = User.objects.get(email=email) # Make User -> user as per Main Code
+            usr = user.objects.get(email=email) # Make User -> user as per Main Code
             if (usr is None) or (usr.password != password):
                 return Response(
                     {
@@ -202,15 +202,15 @@ def extension_login_view(request):
                 print('User exists, proceeding with auto-fill')
                 print(usr)
                 try:
-                    usr = User.objects.get(email=email)
+                    usr = user.objects.get(email=email)
                     print('User found:', usr)
                     user_data = UserSerializer(usr).data
                     print('user_data:', user_data)
                     return Response({"message": "Login successful", "success": True, "user_name": usr.fullName, "user_email": usr.email, "user_info": user_data,}, status=status.HTTP_200_OK)
-                except User.DoesNotExist:
+                except user.DoesNotExist:
                     print('User does not exist...')
                     return Response({"message": "User not found", "autofill_data": {}}, status=status.HTTP_404_NOT_FOUND)
-        except User.DoesNotExist:
+        except user.DoesNotExist:
             return Response(
                 {"success": False, "message": "User does not exist"},
                 status=status.HTTP_404_NOT_FOUND,
