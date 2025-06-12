@@ -4,6 +4,24 @@ import numpy as np
 from pdf2image import convert_from_bytes
 from PIL import Image
 import io
+import google.generativeai as genai
+from django.conf import settings
+    
+
+def get_structured_data_from_raw_data(raw_data):
+    # fetch structured data from ai api using raw data
+    api_key = "AIzaSyC_OPZO2FLYsAs-Gtvjx-5AQGYKBDUul5k"
+    instructions =" I have provided raw data, extract structured data from and format it as a json object and return only json don't generate anything else."
+    
+    user_prompt = raw_data + instructions   
+    client = genai.configure(api_key=api_key)
+    response = genai.GenerativeModel('gemini-2.0-flash').generate_content(user_prompt)
+
+    structured_data = "".join(response.text.split('\n')[1:-1])
+    print('1. Fetched structured data....')
+    return structured_data
+
+
 
 def get_ocr_data(uploaded_file):
     uploaded_file.seek(0)
@@ -31,5 +49,6 @@ def get_ocr_data(uploaded_file):
             print(f"Error processing image: {e}")
             text_output = ""
 
-    uploaded_file.seek(0)  # Reset pointer for Django to save the file
-    return text_output.strip()
+    uploaded_file.seek(0) 
+    structured_data = get_structured_data_from_raw_data(text_output.strip())
+    return structured_data

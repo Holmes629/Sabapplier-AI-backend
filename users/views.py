@@ -1,5 +1,6 @@
 import os
 from rest_framework import status
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -181,11 +182,12 @@ def get_profile(request):
 ####################  API End Points for Extension ####################
 
 
-
+@csrf_exempt
 @api_view(['POST'])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def extension_login_view(request):
     try:
+        print('inside extension_login_view')
         email = request.data.get('user_email')
         password = request.data.get('user_password')
         try:
