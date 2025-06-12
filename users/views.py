@@ -49,6 +49,7 @@ def register(request):
 def update_data(request):
     try:
         userData = request.data.copy()
+        print('userData:', userData)
         usr = user.objects.filter(email=userData.get('email', "")).first()
         if not usr:
             return Response({"success": False, "message": "User not found."}, status=status.HTTP_404_NOT_FOUND)
