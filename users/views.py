@@ -66,7 +66,8 @@ def update_data(request):
         for field_name, uploaded_file in request.FILES.items():
             # Example: field_name = "aadhaar_card"
             base_folder = f"{usr.email.split('@')[0]}"
-            file_name = uploaded_file.name
+            # file_name = uploaded_file.name
+            file_name = f"{base_folder}_{field_name.replace('_file_url', '')}"
             file_path = os.path.join(base_folder, file_name)
 
             # Save to Dropbox

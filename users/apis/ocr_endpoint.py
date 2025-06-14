@@ -50,5 +50,6 @@ def get_ocr_data(uploaded_file):
             text_output = ""
 
     uploaded_file.seek(0) 
-    structured_data = get_structured_data_from_raw_data(text_output.strip())
-    return structured_data
+    # structured_data = get_structured_data_from_raw_data(text_output.strip())
+    data = text_output.strip()
+    return data
