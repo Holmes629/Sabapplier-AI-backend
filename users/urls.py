@@ -4,6 +4,18 @@ from django.conf.urls.static import static
 from . import views
 
 urlpatterns = [
+    # OTP endpoints
+    path('send-otp/', views.send_otp, name='send_otp'),
+    path('verify-otp/', views.verify_otp, name='verify_otp'),
+    
+    # Forgot Password endpoints
+    path('forgot-password/send-otp/', views.send_forgot_password_otp, name='send_forgot_password_otp'),
+    path('forgot-password/reset/', views.reset_password, name='reset_password'),
+
+    # Google OAuth endpoint
+    path('google-signup/', views.google_signup, name='google_signup'),
+
+    # User management endpoints
     path('register/', views.register, name='register'),
     path('update/', views.update_data, name='update_data'),
     path('delete/', views.delete_data, name='delete_data'),
