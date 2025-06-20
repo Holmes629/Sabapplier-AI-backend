@@ -397,22 +397,30 @@ def update_data(request):
 
         # Handle file uploads
         for field_name, uploaded_file in request.FILES.items():
-            # Example: field_name = "aadhaar_card"
+            print(f"Processing file upload for field: {field_name}")
             base_folder = f"{usr.email.split('@')[0]}"
-            # file_name = uploaded_file.name
-            file_name = f"{base_folder}_{field_name.replace('_file_url', '')}"
+            
+            # Clean field name - remove _file_url suffix if present
+            clean_field_name = field_name.replace('_file_url', '')
+            file_name = f"{base_folder}_{clean_field_name}"
             file_path = os.path.join(base_folder, file_name)
 
             # Save to Dropbox
             saved_path = dropbox_storage.save(file_path, uploaded_file)
             file_url = dropbox_storage.url(saved_path)
 
-            # Store in documents
-            usr.document_urls[file_name + "_file_url"] = file_url
+            # Store in documents with the original field name as key
+            # This ensures frontend can access it correctly
+            usr.document_urls[field_name] = file_url
+            print(f"Stored document URL for {field_name}: {file_url}")
 
             # Extract and store OCR text
             ocr_text = get_ocr_data(uploaded_file)
-            usr.document_texts[file_name + "_text_data"] = ocr_text
+            text_field_name = field_name.replace('_file_url', '_text_data')
+            usr.document_texts[text_field_name] = ocr_text
+            print(f"Stored OCR text for {text_field_name}")
+            
+            # Remove file field from userData to avoid serializer issues
             if field_name in userData:
                 userData.pop(field_name)
 
