@@ -6,56 +6,9 @@ from .models import user, Token
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
-    # Add individual document URL fields that map to the document_urls JSONField
-    passport_size_photo_file_url = serializers.SerializerMethodField()
-    aadhaar_card_file_url = serializers.SerializerMethodField()
-    pan_card_file_url = serializers.SerializerMethodField()
-    signature_file_url = serializers.SerializerMethodField()
-    _10th_certificate_file_url = serializers.SerializerMethodField()
-    _12th_certificate_file_url = serializers.SerializerMethodField()
-    graduation_certificate_file_url = serializers.SerializerMethodField()
-    left_thumb_file_url = serializers.SerializerMethodField()
-    caste_certificate_file_url = serializers.SerializerMethodField()
-    pwd_certificate_file_url = serializers.SerializerMethodField()
-    domicile_certificate_file_url = serializers.SerializerMethodField()
-    
     class Meta:
         model = user
-        fields = ['email', 'password', 'fullName', 'fathersName', 'mothersName', 'gender', 'dateofbirth', 'category', 'disability', 'nationality', 'domicileState', 'maritalStatus', 'religion', 'permanentAddress', 'correspondenceAddress', 'phone_number', 'alt_phone_number', 'google_profile_picture', 'document_urls', 'document_texts',
-                 'passport_size_photo_file_url', 'aadhaar_card_file_url', 'pan_card_file_url', 'signature_file_url', '_10th_certificate_file_url', '_12th_certificate_file_url', 'graduation_certificate_file_url', 'left_thumb_file_url', 'caste_certificate_file_url', 'pwd_certificate_file_url', 'domicile_certificate_file_url']
-
-    def get_passport_size_photo_file_url(self, obj):
-        return obj.document_urls.get('passport_size_photo_file_url') if obj.document_urls else None
-    
-    def get_aadhaar_card_file_url(self, obj):
-        return obj.document_urls.get('aadhaar_card_file_url') if obj.document_urls else None
-    
-    def get_pan_card_file_url(self, obj):
-        return obj.document_urls.get('pan_card_file_url') if obj.document_urls else None
-    
-    def get_signature_file_url(self, obj):
-        return obj.document_urls.get('signature_file_url') if obj.document_urls else None
-    
-    def get__10th_certificate_file_url(self, obj):
-        return obj.document_urls.get('_10th_certificate_file_url') if obj.document_urls else None
-    
-    def get__12th_certificate_file_url(self, obj):
-        return obj.document_urls.get('_12th_certificate_file_url') if obj.document_urls else None
-    
-    def get_graduation_certificate_file_url(self, obj):
-        return obj.document_urls.get('graduation_certificate_file_url') if obj.document_urls else None
-    
-    def get_left_thumb_file_url(self, obj):
-        return obj.document_urls.get('left_thumb_file_url') if obj.document_urls else None
-    
-    def get_caste_certificate_file_url(self, obj):
-        return obj.document_urls.get('caste_certificate_file_url') if obj.document_urls else None
-    
-    def get_pwd_certificate_file_url(self, obj):
-        return obj.document_urls.get('pwd_certificate_file_url') if obj.document_urls else None
-    
-    def get_domicile_certificate_file_url(self, obj):
-        return obj.document_urls.get('domicile_certificate_file_url') if obj.document_urls else None
+        fields = ['email', 'password', 'fullName', 'fathersName', 'mothersName', 'gender', 'dateofbirth', 'category', 'disability', 'nationality', 'domicileState', 'maritalStatus', 'religion', 'permanentAddress', 'correspondenceAddress', 'phone_number', 'alt_phone_number', 'document_urls', 'document_texts']
         # extra_kwargs = {
         #     'fullName': {'required': False, 'allow_null': True, 'allow_blank': True},
         #     'dateofbirth': {'required': False, 'allow_null': True},
