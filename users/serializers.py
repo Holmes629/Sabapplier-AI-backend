@@ -6,9 +6,80 @@ from .models import user, Token
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    # Add individual document fields for frontend compatibility
+    passport_size_photo_file_url = serializers.SerializerMethodField()
+    aadhaar_card_file_url = serializers.SerializerMethodField()
+    pan_card_file_url = serializers.SerializerMethodField()
+    signature_file_url = serializers.SerializerMethodField()
+    _10th_certificate_file_url = serializers.SerializerMethodField()
+    _12th_certificate_file_url = serializers.SerializerMethodField()
+    graduation_certificate_file_url = serializers.SerializerMethodField()
+    left_thumb_file_url = serializers.SerializerMethodField()
+    caste_certificate_file_url = serializers.SerializerMethodField()
+    pwd_certificate_file_url = serializers.SerializerMethodField()
+    domicile_certificate_file_url = serializers.SerializerMethodField()
+
     class Meta:
         model = user
-        fields = ['email', 'password', 'fullName', 'fathersName', 'mothersName', 'gender', 'dateofbirth', 'category', 'disability', 'nationality', 'domicileState', 'maritalStatus', 'religion', 'permanentAddress', 'correspondenceAddress', 'phone_number', 'alt_phone_number', 'document_urls', 'document_texts']
+        fields = [
+            'email', 'password', 'fullName', 'fathersName', 'mothersName', 
+            'gender', 'dateofbirth', 'category', 'disability', 'nationality', 
+            'domicileState', 'maritalStatus', 'religion', 'permanentAddress', 
+            'correspondenceAddress', 'phone_number', 'alt_phone_number',            'google_profile_picture', 'document_urls', 'document_texts',
+            # Individual document fields for frontend
+            'passport_size_photo_file_url', 'aadhaar_card_file_url', 'pan_card_file_url',
+            'signature_file_url', '_10th_certificate_file_url', '_12th_certificate_file_url',
+            'graduation_certificate_file_url', 'left_thumb_file_url', 'caste_certificate_file_url',
+            'pwd_certificate_file_url', 'domicile_certificate_file_url'
+        ]
+
+    def _get_document_url(self, obj, field_name):
+        """Helper method to get document URL, checking both new and legacy formats"""
+        if not obj.document_urls:
+            return None
+        
+        # First try the new format (direct field name)
+        url = obj.document_urls.get(field_name)
+        if url:
+            return url
+        
+        # Then try the legacy format (email_prefix_field_name)
+        email_prefix = obj.email.split('@')[0] if obj.email else ''
+        legacy_key = f"{email_prefix}_{field_name}"
+        return obj.document_urls.get(legacy_key)
+
+    def get_passport_size_photo_file_url(self, obj):
+        return self._get_document_url(obj, 'passport_size_photo_file_url')
+    
+    def get_aadhaar_card_file_url(self, obj):
+        return self._get_document_url(obj, 'aadhaar_card_file_url')
+    
+    def get_pan_card_file_url(self, obj):
+        return self._get_document_url(obj, 'pan_card_file_url')
+    
+    def get_signature_file_url(self, obj):
+        return self._get_document_url(obj, 'signature_file_url')
+    
+    def get__10th_certificate_file_url(self, obj):
+        return self._get_document_url(obj, '_10th_certificate_file_url')
+    
+    def get__12th_certificate_file_url(self, obj):
+        return self._get_document_url(obj, '_12th_certificate_file_url')
+    
+    def get_graduation_certificate_file_url(self, obj):
+        return self._get_document_url(obj, 'graduation_certificate_file_url')
+    
+    def get_left_thumb_file_url(self, obj):
+        return self._get_document_url(obj, 'left_thumb_file_url')
+    
+    def get_caste_certificate_file_url(self, obj):
+        return self._get_document_url(obj, 'caste_certificate_file_url')
+    
+    def get_pwd_certificate_file_url(self, obj):
+        return self._get_document_url(obj, 'pwd_certificate_file_url')
+    
+    def get_domicile_certificate_file_url(self, obj):
+        return self._get_document_url(obj, 'domicile_certificate_file_url')
         # extra_kwargs = {
         #     'fullName': {'required': False, 'allow_null': True, 'allow_blank': True},
         #     'dateofbirth': {'required': False, 'allow_null': True},

@@ -87,6 +87,7 @@ class user(models.Model):
     correspondenceAddress = models.TextField(null=True)
     phone_number = models.CharField(max_length=10, null=True)
     alt_phone_number = models.CharField(max_length=10, null=True)
+    google_profile_picture = models.URLField(null=True, blank=True)  # Store Google profile picture URL
     document_urls = models.JSONField(default=dict, null=True)
     document_texts = models.JSONField(default=dict, null=True)
 
