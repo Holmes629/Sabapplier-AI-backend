@@ -576,6 +576,7 @@ def get_profile(request):
 ####################  API End Points for Extension ####################
 
 
+@csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def extension_login_view(request):
@@ -630,7 +631,7 @@ def extension_login_view(request):
             {"error": "Login Failed"}, status=status.HTTP_400_BAD_REQUEST
         )
 
-
+@csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def auto_fill_extension(request):
