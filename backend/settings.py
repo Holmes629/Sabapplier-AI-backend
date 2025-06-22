@@ -91,6 +91,14 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+# Uncomment below for PostgreSQL production database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -171,7 +179,29 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 
+
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "7976ritesh@gmail.com"  # Your Gmail address
+EMAIL_HOST_PASSWORD = "jcht jjls ooeb zewz"  # App Password
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID = "242623815179-uka3t09d0v6oqcbhs6vgotftspdrcl4d.apps.googleusercontent.com"
+
+# Cache configuration for OTP storage
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
