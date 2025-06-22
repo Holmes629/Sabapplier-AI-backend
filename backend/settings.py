@@ -151,7 +151,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies and authentication
 
-CSRF_TRUSTED_ORIGINS = ["https://api.sabapplier.com", "http://api.sabapplier.com", "http://localhost:3000"]  # Prevent CSRF issues
+CSRF_TRUSTED_ORIGINS = ["https://api.sabapplier.com", "http://api.sabapplier.com", "http://localhost:3000", r"^chrome-extension://.+$"]  # Prevent CSRF issues
 
 
 # Internationalization
