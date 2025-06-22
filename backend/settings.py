@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-ynw%r6t5@)=uoz@os#k54f5tz(06w^5gr9)k95)ua3rdp1#a3k
 AIVEN_SERVICE_PASSWORD= 'AVNS_1YyoLCsZN4Ojj630rl4'
 
 
-# Google Drive Storage Settings
+# Dropbox Storage Settings
 DROPBOX_CLIENT_ID  = 'bmss0fq156sndxd'
 DROPBOX_CLIENT_SECRET  = '2n2afrqw8g2cfbv'
 DROPBOX_REFRESH_TOKEN = "tyMQj8_akrMAAAAAAAAAAVjZ5UsXKq8hLM6_KyjrJ4upTLOip2AoYtx66-IwdxI9"
@@ -191,12 +191,12 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "7976ritesh@gmail.com"  # Your Gmail address
-EMAIL_HOST_PASSWORD = "jcht jjls ooeb zewz"  # App Password
+EMAIL_HOST_USER = "sabapplierai100m@gmail.com"  # Your Gmail address
+EMAIL_HOST_PASSWORD = "zuwu vzth lqgg owbw"  # App Password
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Google OAuth Configuration
-GOOGLE_CLIENT_ID = "242623815179-uka3t09d0v6oqcbhs6vgotftspdrcl4d.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID = "1014179036736-d8et6ht2jf4kf9flcol0uv0ktv33v5fh.apps.googleusercontent.com"
 
 # Cache configuration for OTP storage
 CACHES = {

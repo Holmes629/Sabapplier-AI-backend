@@ -403,11 +403,12 @@ def update_data(request):
             if not field_name.endswith('_file_url'):
                 field_name = field_name + '_file_url'
             
+            ext = uploaded_file.name.split('.')[-1]
             base_folder = f"{usr.email.split('@')[0]}"
             # Create clean file name for Dropbox storage
             clean_field_name = field_name.replace('_file_url', '')
             file_name = f"{base_folder}_{clean_field_name}"
-            file_path = os.path.join(base_folder, file_name)
+            file_path = os.path.join(base_folder, file_name + "."+ ext)
 
             try:
                 # Save to Dropbox
