@@ -577,7 +577,7 @@ def get_profile(request):
 
 
 @csrf_exempt
-@api_view(["POST"])
+@api_view(["GET"])
 @permission_classes([AllowAny])
 def extension_login_view(request):
     try:
