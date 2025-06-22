@@ -24,8 +24,9 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'email', 'password', 'fullName', 'fathersName', 'mothersName', 
             'gender', 'dateofbirth', 'category', 'disability', 'nationality', 
-            'domicileState', 'maritalStatus', 'religion', 'permanentAddress', 
-            'correspondenceAddress', 'phone_number', 'alt_phone_number',            'google_profile_picture', 'document_urls', 'document_texts',
+            'domicileState', 'district', 'mandal', 'pincode', 'maritalStatus', 'religion', 'permanentAddress', 
+            'correspondenceAddress', 'phone_number', 'alt_phone_number',
+            'google_profile_picture', 'document_urls', 'document_texts',
             # Individual document fields for frontend
             'passport_size_photo_file_url', 'aadhaar_card_file_url', 'pan_card_file_url',
             'signature_file_url', '_10th_certificate_file_url', '_12th_certificate_file_url',
