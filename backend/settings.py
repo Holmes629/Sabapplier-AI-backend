@@ -39,7 +39,9 @@ DROPBOX_REFRESH_TOKEN = "tyMQj8_akrMAAAAAAAAAAVjZ5UsXKq8hLM6_KyjrJ4upTLOip2AoYtx
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_NAME = "csrf_token"
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
@@ -66,7 +68,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
