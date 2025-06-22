@@ -576,7 +576,6 @@ def get_profile(request):
 ####################  API End Points for Extension ####################
 
 
-@csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def extension_login_view(request):
