@@ -167,7 +167,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^chrome-extension://[a-zA-Z0-9-]+$",  # More specific pattern for chrome extensions
     r"^http://localhost:.*$",    # if testing via localhost too
 ]
-
+CORS_ALLOW_NULL_ORIGIN = True
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies and authentication
 CORS_ALLOW_METHODS = [
     'DELETE',
