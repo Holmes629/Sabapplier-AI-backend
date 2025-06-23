@@ -12,7 +12,7 @@ from django.conf import settings
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 
 from google.oauth2 import id_token
 from google.auth.transport import requests
@@ -575,7 +575,7 @@ def get_profile(request):
 
 ####################  API End Points for Extension ####################
 
-# @csrf_exempt
+@csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def extension_login_view(request):

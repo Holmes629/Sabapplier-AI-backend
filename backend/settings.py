@@ -60,26 +60,12 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
-
-# REST_FRAMEWORK = {
-#     'DEFAULT_AUTHENTICATION_CLASSES': [
-#         'rest_framework.authentication.SessionAuthentication',
-#         'rest_framework.authentication.TokenAuthentication',
-#     ],
-#     'DEFAULT_PERMISSION_CLASSES': [
-#         'rest_framework.permissions.AllowAny',
-#     ],
-#     'DEFAULT_RENDERER_CLASSES': [
-#         'rest_framework.renderers.JSONRenderer',
-#         'rest_framework.renderers.BrowsableAPIRenderer',
-#     ],
-# }
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -167,7 +153,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^chrome-extension://[a-zA-Z0-9-]+$",  # More specific pattern for chrome extensions
     r"^http://localhost:.*$",    # if testing via localhost too
 ]
-CORS_ALLOW_NULL_ORIGIN = True
+
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies and authentication
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -249,3 +235,5 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+
+print("Extension login view hit")
