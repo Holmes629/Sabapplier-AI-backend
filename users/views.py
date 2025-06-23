@@ -576,59 +576,66 @@ def get_profile(request):
 ####################  API End Points for Extension ####################
 
 
-@csrf_exempt
-@api_view(["GET"])
+@api_view(["POST"])
 @permission_classes([AllowAny])
 def extension_login_view(request):
     try:
-        print("inside extension_login_view")
+        print("Inside extension_login_view")
         email = request.data.get("user_email")
         password = request.data.get("user_password")
+        
+        print(f"Attempting login for email: {email}")
+        
+        if not email or not password:
+            print("Missing email or password")
+            return Response(
+                {
+                    "success": False,
+                    "message": "Email and password are required!",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+            
         try:
-            usr = user.objects.get(
-                email=email
-            )  # Make User -> user as per Main Code
-            if (usr is None) or (usr.password != password):
+            usr = user.objects.get(email=email)
+            print(f"Found user: {usr.email}")
+            
+            if usr.password != password:  # Note: In production, use proper password hashing
+                print("Invalid password")
                 return Response(
                     {
                         "success": False,
-                        "message": "Invalid user Credentials!",
+                        "message": "Invalid credentials!",
                     },
                     status=status.HTTP_401_UNAUTHORIZED,
                 )
-            else:
-                print("User exists, proceeding with auto-fill")
-                print(usr)
-                try:
-                    usr = user.objects.get(email=email)
-                    print("User found:", usr)
-                    user_data = UserSerializer(usr).data
-                    print("user_data:", user_data)
-                    return Response(
-                        {
-                            "message": "Login successful",
-                            "success": True,
-                            "user_name": usr.fullName,
-                            "user_email": usr.email,
-                            "user_info": user_data,
-                        },
-                        status=status.HTTP_200_OK,
-                    )
-                except user.DoesNotExist:
-                    print("User does not exist...")
-                    return Response(
-                        {"message": "User not found", "autofill_data": {}},
-                        status=status.HTTP_404_NOT_FOUND,
-                    )
+                
+            print("Password verified, login successful")
+            user_data = UserSerializer(usr).data
+            
+            return Response(
+                {
+                    "message": "Login successful",
+                    "success": True,
+                    "user_name": usr.fullName,
+                    "user_email": usr.email,
+                    "user_info": user_data,
+                },
+                status=status.HTTP_200_OK,
+            )
+            
         except user.DoesNotExist:
+            print(f"User not found for email: {email}")
             return Response(
                 {"success": False, "message": "User does not exist"},
                 status=status.HTTP_404_NOT_FOUND,
             )
+            
     except Exception as err:
-        print("Error:", err)
+        print(f"Error in extension_login_view: {str(err)}")
         return Response(
-            {"error": "Login Failed"}, status=status.HTTP_400_BAD_REQUEST
+            {"error": f"Login Failed: {str(err)}"},
+            status=status.HTTP_400_BAD_REQUEST
         )
 
 @csrf_exempt

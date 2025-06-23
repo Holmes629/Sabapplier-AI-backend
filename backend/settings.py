@@ -56,16 +56,30 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    # 'corsheaders.middleware.CorsMiddleware',
-    # 'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # 'django.middleware.common.CommonMiddleware',
+    'django.middleware.common.CommonMiddleware',
     # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework.authentication.SessionAuthentication',
+#         'rest_framework.authentication.TokenAuthentication',
+#     ],
+#     'DEFAULT_PERMISSION_CLASSES': [
+#         'rest_framework.permissions.AllowAny',
+#     ],
+#     'DEFAULT_RENDERER_CLASSES': [
+#         'rest_framework.renderers.JSONRenderer',
+#         'rest_framework.renderers.BrowsableAPIRenderer',
+#     ],
+# }
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -130,29 +144,59 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # White listing the localhost:3000 port
 # for React
+CORS_ALLOW_ALL_ORIGINS = False  # Explicitly set to False for security
 CORS_ORIGIN_WHITELIST = (
     "https://sabapplier.com",
     "http://sabapplier.com",
     "https://www.sabapplier.com",
     "http://www.sabapplier.com",
     'http://localhost:3000',
-    r"^chrome-extension://.+$"
+    'http://localhost:8000',
+    'chrome-extension://*'
 )
 CORS_ALLOWED_ORIGINS = [
     "https://sabapplier.com",
     "http://sabapplier.com",
     "https://www.sabapplier.com",
     "http://www.sabapplier.com",
-    "http://localhost:3000",  # Allow frontend to access backend
+    "http://localhost:3000",
+    "http://localhost:8000",
 ] 
+
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^chrome-extension://.+$",  # allow all extensions temporarily
+    r"^chrome-extension://[a-zA-Z0-9-]+$",  # More specific pattern for chrome extensions
     r"^http://localhost:.*$",    # if testing via localhost too
 ]
 
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies and authentication
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
-CSRF_TRUSTED_ORIGINS = ["https://api.sabapplier.com", "http://api.sabapplier.com", "http://localhost:3000", r"^chrome-extension://.+$"]  # Prevent CSRF issues
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://api.sabapplier.com",
+    "http://api.sabapplier.com",
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "chrome-extension://*"
+]  # Prevent CSRF issues
 
 
 # Internationalization
