@@ -68,8 +68,7 @@ class user(models.Model):
         ('Others', 'Others'),
     ]
     
-    
-    # id = models.AutoField(primary_key=True)
+      # id = models.AutoField(primary_key=True)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=255)
     fullName = models.CharField(max_length=255, null=True)
@@ -81,6 +80,9 @@ class user(models.Model):
     disability = models.BooleanField(default=False)
     nationality = models.CharField(max_length=255, null=True)
     domicileState = models.CharField(max_length=255, null=True)
+    district = models.CharField(max_length=255, null=True)
+    mandal = models.CharField(max_length=255, null=True)
+    pincode = models.CharField(max_length=6, null=True)
     maritalStatus = models.CharField(max_length=255, choices=MaritalStatus_Choices, default='Select')
     religion = models.CharField(max_length=255, null=True)
     permanentAddress = models.TextField(null=True)
