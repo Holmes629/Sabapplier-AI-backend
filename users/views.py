@@ -45,6 +45,7 @@ User = get_user_model()
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def send_otp(request):
+    print('Inside send_otp function')
     email = request.data.get("email", "").strip().lower()  # normalize
 
     if not email:
@@ -75,6 +76,7 @@ def send_otp(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def verify_otp(request):
+    print('Inside verify_otp function')
     email = request.data.get("email")
     otp = request.data.get("otp")
     if not (email and otp):
@@ -99,6 +101,7 @@ def verify_otp(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def send_forgot_password_otp(request):
+    print('Inside send_forgot_password_otp function')
     email = request.data.get("email", "").strip().lower()
 
     if not email:
@@ -134,6 +137,7 @@ def send_forgot_password_otp(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def reset_password(request):
+    print('Inside reset_password function')
     email = request.data.get("email", "").strip().lower()
     otp = request.data.get("otp")
     new_password = request.data.get("password")
@@ -175,6 +179,7 @@ def reset_password(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def google_signup(request):
+    print('Inside google_signup function')
     try:
         credential = request.data.get("credential")
         if not credential:
@@ -342,7 +347,7 @@ def google_signup(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register(request):
-    print(request.data)
+    print('Inside register function')
     # Ignore extra fields and only process email and password (and confirmPassword if present)
     allowed_fields = {"email", "password", "confirmPassword"}
     data = {k: v for k, v in request.data.items() if k in allowed_fields}
@@ -370,9 +375,9 @@ def register(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def update_data(request):
+    print('Inside update_data function')
     try:
         userData = request.data.copy()
-        print("userData:", userData)
         
         # Map frontend field names to backend model field names
         if 'address' in userData:
@@ -397,7 +402,6 @@ def update_data(request):
 
         # Handle file uploads
         for field_name, uploaded_file in request.FILES.items():
-            print(f"Processing file upload for field: {field_name}")
             
             # Ensure field_name ends with _file_url for consistency
             if not field_name.endswith('_file_url'):
@@ -414,26 +418,21 @@ def update_data(request):
                 # Save to Dropbox
                 saved_path = dropbox_storage.save(file_path, uploaded_file)
                 file_url = dropbox_storage.url(saved_path)
-                print(f"File saved to Dropbox: {file_url}")
 
                 # Store in documents with the correct field name that frontend expects
                 usr.document_urls[field_name] = file_url
-                print(f"Stored in document_urls with key: {field_name}")
 
                 # Extract and store OCR text
                 try:
                     ocr_text = get_ocr_data(uploaded_file)
                     text_field_name = field_name.replace('_file_url', '_text_data')
                     usr.document_texts[text_field_name] = ocr_text
-                    print(f"OCR extracted and stored with key: {text_field_name}")
                 except Exception as ocr_error:
-                    print(f"OCR extraction failed: {ocr_error}")
                     # Store empty text if OCR fails
                     text_field_name = field_name.replace('_file_url', '_text_data')
                     usr.document_texts[text_field_name] = ""
                 
             except Exception as upload_error:
-                print(f"File upload failed for {field_name}: {upload_error}")
                 return Response(
                     {"success": False, "message": f"File upload failed: {str(upload_error)}"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -461,7 +460,6 @@ def update_data(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     except Exception as err:
-        print("Update error:", err)
         return Response(
             {
                 "success": False,
@@ -474,13 +472,11 @@ def update_data(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def delete_data(request):
-    print(request.data)
-    print(request.data.get("email", ""))
+    print('Inside delete_data function')
     try:
         userData = request.data.copy()
         usr = user.objects.filter(email=userData.get("email", "")).first()
         field = request.data.get("field")
-        print("field:", field)
 
         if not field:
             return Response(
@@ -489,11 +485,8 @@ def delete_data(request):
             )
 
         if field in usr.document_urls:
-            print("inside if field in usr.document_urls")
             del usr.document_urls[field]
-            print("deleted field from document_urls")
             del usr.document_texts[field.replace("_file_url", "_text_data")]
-            print("deleted field from document_texts")
             usr.save()
             return Response(
                 {"success": True, "message": f"{field} deleted."},
@@ -512,6 +505,7 @@ def delete_data(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login_view(request):
+    print('Inside login_view function')
     email = request.data.get("email")
     password = request.data.get("password")
     try:
@@ -539,6 +533,7 @@ def login_view(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def logout_view(request):
+    print('Inside logout_view function')
     try:
         request.session.flush()
         return Response(
@@ -553,11 +548,11 @@ def logout_view(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def get_profile(request):
+    print('Inside get_profile function')
     try:
         usr = user.objects.get(email=request.GET.get("email"))
         serializer = UserSerializer(usr)
         user_data = serializer.data
-        print("user_data:", user_data)
         return Response(
             {
                 "message": "Profile fetched successfully",
@@ -566,7 +561,6 @@ def get_profile(request):
             status=status.HTTP_200_OK,
         )
     except Exception as err:
-        print(err)
         return Response(
             {"error": "profile failed to load"},
             status=status.HTTP_400_BAD_REQUEST,
@@ -579,15 +573,12 @@ def get_profile(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def extension_login_view(request):
+    print('Inside extension_login_view function')
     try:
-        print("Inside extension_login_view")
         email = request.data.get("user_email")
         password = request.data.get("user_password")
         
-        print(f"Attempting login for email: {email}")
-        
         if not email or not password:
-            print("Missing email or password")
             return Response(
                 {
                     "success": False,
@@ -598,10 +589,8 @@ def extension_login_view(request):
             
         try:
             usr = user.objects.get(email=email)
-            print(f"Found user: {usr.email}")
             
             if usr.password != password:  # Note: In production, use proper password hashing
-                print("Invalid password")
                 return Response(
                     {
                         "success": False,
@@ -609,8 +598,6 @@ def extension_login_view(request):
                     },
                     status=status.HTTP_401_UNAUTHORIZED,
                 )
-                
-            print("Password verified, login successful")
             user_data = UserSerializer(usr).data
             
             return Response(
@@ -625,14 +612,12 @@ def extension_login_view(request):
             )
             
         except user.DoesNotExist:
-            print(f"User not found for email: {email}")
             return Response(
                 {"success": False, "message": "User does not exist"},
                 status=status.HTTP_404_NOT_FOUND,
             )
             
     except Exception as err:
-        print(f"Error in extension_login_view: {str(err)}")
         return Response(
             {"error": f"Login Failed: {str(err)}"},
             status=status.HTTP_400_BAD_REQUEST
@@ -642,15 +627,15 @@ def extension_login_view(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def auto_fill_extension(request):
+    print('Inside auto_fill_extension function')
     try:
         html_data = request.data["html_data"]
         user_email = request.data["user_email"]
         try:
             usr = user.objects.get(email=user_email)
             user_data = UserSerializer(usr).data
-            print("user_data:", user_data)
             autofill_data = get_autofill_data(html_data, user_data)
-            print("autofill_data:", autofill_data)
+            # print("\nautofill_data:", autofill_data)
             return Response(
                 {
                     "message": "Auto-fill successful",
@@ -659,13 +644,11 @@ def auto_fill_extension(request):
                 status=status.HTTP_200_OK,
             )
         except user.DoesNotExist:
-            print("User does not exist...")
             return Response(
                 {"message": "User not found", "autofill_data": {}},
                 status=status.HTTP_404_OK,
             )
     except Exception as err:
-        print("Error:", err)
         return Response(
             {"error": "Auto-fill failed"}, status=status.HTTP_400_BAD_REQUEST
         )
