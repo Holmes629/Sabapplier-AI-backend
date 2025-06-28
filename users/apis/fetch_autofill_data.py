@@ -3,6 +3,7 @@ from django.conf import settings
 from openai import OpenAI
 from bs4 import BeautifulSoup
 import json
+import os
 
 def extract_form_only(raw_html):
     soup = BeautifulSoup(raw_html, 'html.parser')
@@ -12,54 +13,61 @@ def extract_form_only(raw_html):
 
 # Gemini + Gemini (2.0 Flash) -- 1st response -> 2nd response (review and update)
 def get_autofill_data(raw_html, user_data):
-    open_ai_api_key = "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"
-    form_data = extract_form_only(raw_html)
-
-    # Stage 1: Prompt to generate autofill data
-    instructions = (
-        "### TASK:\n"
-        "You are given raw HTML and user JSON. For each and every input field:\n"
-        "I want to fill the html form, so help me to fill it using extension script feature, so for that give me output accordingly such that I can fill that data.\n"
-        "1. Identify the matching form field using input[name=''], or '.class_name', or '#id' (prefer name).\n"
-        "2. For input fields and textareas, fill with relevant user data or similar to it.\n"
-        "3. For select fields, choose the most relevant option based on user data, just give the value of the option don't generate anything else\n"
-        "4. For radio buttons, select the most relevant option based on user data\n"
-        "5. For checkboxes, check the most relevant options based on user data, else check the last option.\n"
-        "6. For file inputs, provide 'file url from the user data' as a filled value.\n"
-        "### SPECIAL INSTRUCTIONS FOR FIELD TYPES:\n"
-        "- For <select> dropdowns: match the name or id, and select the value closest to user data. If a match isn’t obvious, choose a logically relevant value.\n"
-        "- For file inputs: if user JSON contains file URL or document name, assign it. Else, use 'NA'.\n"
-        "- For checkboxes or radios: assign 'checked' if the value applies to user, otherwise 'unchecked'.\n"
-        "- Always include 'type': 'select', 'file', 'checkbox', 'radio', or 'input' as appropriate.\n"
-        "\n\nExample output:"
-        "[\n"
-        "  {'input[name=\"username\"]': 'JohnDoe', 'type': 'input'},\n"
-        "  {'input[name=\"email\"]': 'john@email.com', 'type': 'file'}\n"
-        "]\n"
-        "### Note: don't generate anything else, any explanations, just give json output as specified\n"
-    )
-
-    # Combine input
-    prompt_stage_1 = f"Website Text: {form_data}\nUser JSON: {user_data}\n\n{instructions}"
-
-    # Stage 1: Use Gemini Flash to generate raw autofill data
-    
-    client = OpenAI(api_key= open_ai_api_key)
-    response = client.chat.completions.create(
-        model="gpt-4.1-nano",
-        messages=[
-                {"role": "user", "content": prompt_stage_1},
-            ],
-    ) 
-    res_text = response.choices[0].message.content.strip()
     try:
-        parsed_json = json.loads(res_text)
-        autofillData = json.dumps(parsed_json)  # Serialize to string, safe for frontend JSON.parse
-    except json.JSONDecodeError as e:
-        print(f"❌ JSON parsing error: {e}")
-        autofillData = res_text
-    print("\nautofillData (JSON string):", autofillData)
-    return autofillData
+        import os
+        api_key = os.getenv("api_key")
+        open_ai_api_key = os.getenv("api_key")
+        form_data = extract_form_only(raw_html)
+
+        # Stage 1: Prompt to generate autofill data
+        instructions = (
+            "### TASK:\n"
+            "You are given raw HTML and user JSON. For each and every input field:\n"
+            "I want to fill the html form, so help me to fill it using extension script feature, so for that give me output accordingly such that I can fill that data.\n"
+            "1. Identify the matching form field using input[name=''], or '.class_name', or '#id' (prefer name).\n"
+            "2. For input fields and textareas, fill with relevant user data or similar to it.\n"
+            "3. For select fields, choose the most relevant option based on user data, just give the value of the option don't generate anything else\n"
+            "4. For radio buttons, select the most relevant option based on user data\n"
+            "5. For checkboxes, check the most relevant options based on user data, else check the last option.\n"
+            "6. For file inputs, provide 'file url from the user data' as a filled value.\n"
+            "### SPECIAL INSTRUCTIONS FOR FIELD TYPES:\n"
+            "- For <select> dropdowns: match the name or id, and select the value closest to user data. If a match isn’t obvious, choose a logically relevant value.\n"
+            "- For file inputs: if user JSON contains file URL or document name, assign it. Else, use 'NA'.\n"
+            "- For checkboxes or radios: assign 'checked' if the value applies to user, otherwise 'unchecked'.\n"
+            "- Always include 'type': 'select', 'file', 'checkbox', 'radio', or 'input' as appropriate.\n"
+            "\n\nExample output:"
+            "[\n"
+            "  {'input[name=\"username\"]': 'JohnDoe', 'type': 'input'},\n"
+            "  {'input[name=\"email\"]': 'john@email.com', 'type': 'file'}\n"
+            "]\n"
+            "### Note: don't generate anything else, any explanations, just give json output as specified\n"
+        )
+
+        # Combine input
+        prompt_stage_1 = f"Website Text: {form_data}\nUser JSON: {user_data}\n\n{instructions}"
+
+        # Stage 1: Use Gemini Flash to generate raw autofill data
+        
+        client = OpenAI(api_key= open_ai_api_key)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                    {"role": "user", "content": prompt_stage_1},
+                ],
+        ) 
+        res_text = response.choices[0].message.content.strip()
+        res_text = "".join(res_text.split('\n')[1:-1]).strip()  # Remove any leading/trailing whitespace
+        try:
+            parsed_json = json.loads(res_text)
+            autofillData = json.dumps(parsed_json)  # Serialize to string, safe for frontend JSON.parse
+        except json.JSONDecodeError as e:
+            print(f"❌ JSON parsing error: {e}")
+            autofillData = res_text
+        print("\nautofillData (JSON string):", autofillData)
+        return autofillData
+    except Exception as e:
+        print(f"❌ Error in get_autofill_data: {e}")
+        return {}
 
     # raw_autofill = "".join(res_text.split('\n')[1:-1]).strip()
 
