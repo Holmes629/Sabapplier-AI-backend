@@ -13,7 +13,7 @@ def extract_form_only(raw_html):
 
 def get_autofill_data(raw_html, user_data):
     try:
-        api_key = "AIzaSyC_OPZO2FLYsAs-Gtvjx-5AQGYKBDUul5k"
+        api_key = "AIzaSyB5imrkHYR7SEewNu4V1uSPuOTdirjduYs"
         form_data = extract_form_only(raw_html)
 
         # Stage 1: Prompt to generate autofill data
@@ -44,7 +44,7 @@ def get_autofill_data(raw_html, user_data):
 
         # Stage 1: Use Gemini Flash to generate raw autofill data
         genai.configure(api_key=api_key)
-        model_flash = genai.GenerativeModel('gemini-2.5-flash')
+        model_flash = genai.GenerativeModel('gemini-2.0-flash')
         response_stage_1 = model_flash.generate_content(prompt_stage_1)
         raw_autofill = "".join(response_stage_1.text.split('\n')[1:-1])
 
