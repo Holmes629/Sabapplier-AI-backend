@@ -44,17 +44,14 @@ def get_autofill_data(raw_html, user_data):
 
         # Stage 1: Use Gemini Flash to generate raw autofill data
         genai.configure(api_key=api_key)
-        model_flash = genai.GenerativeModel('gemini-2.5-flash')
+        model_flash = genai.GenerativeModel('gemini-2.0-flash')
         response_stage_1 = model_flash.generate_content(
             prompt_stage_1,  
-            generation_config={
-                "thinking_budget": 0
-            }
         )
         raw_autofill = "".join(response_stage_1.text.split('\n')[1:-1])
 
         print("🔹 Stage 1 autofill data (raw):", raw_autofill)
-        return raw_autofill
+        # return raw_autofill
 
         # Stage 2: Prompt to review and correct autofill data
         review_prompt = (
@@ -77,7 +74,7 @@ def get_autofill_data(raw_html, user_data):
         )
 
         # Stage 2: Use Gemini 1.5 Pro to review and refine
-        model_refiner = genai.GenerativeModel('gemini-2.5-flash')  # More accurate model
+        model_refiner = genai.GenerativeModel('gemini-2.0-flash')  # More accurate model
         response_stage_2 = model_refiner.generate_content(review_prompt)
         improved_autofill = "".join(response_stage_2.text.split('\n')[1:-1])
 
