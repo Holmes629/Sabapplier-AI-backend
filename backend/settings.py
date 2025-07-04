@@ -91,24 +91,24 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-# Uncomment below for PostgreSQL production database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'defaultdb',
-        'USER': 'avnadmin',
-        'PASSWORD': AIVEN_SERVICE_PASSWORD,
-        'HOST': 'test-pg0001-amgens-42ab.h.aivencloud.com',
-        'PORT': '24554',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# Uncomment below for PostgreSQL production database
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': 'defaultdb',
+#         'USER': 'avnadmin',
+#         'PASSWORD': AIVEN_SERVICE_PASSWORD,
+#         'HOST': 'test-pg0001-amgens-42ab.h.aivencloud.com',
+#         'PORT': '24554',
+#     }
+# }
 
 
 # Password validation
@@ -197,6 +197,14 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = "1014179036736-d8et6ht2jf4kf9flcol0uv0ktv33v5fh.apps.googleusercontent.com"
+
+# Django REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',  # Default to allow any for development
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [],  # No authentication required by default
+}
 
 # Cache configuration for OTP storage
 CACHES = {

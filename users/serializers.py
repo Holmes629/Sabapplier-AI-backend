@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from .models import user, Token
+from .models import user, Token, DataShare, ShareNotification
 
 User = get_user_model()
 
@@ -125,4 +125,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
              validated_data['fullName'] = ""
         if user.objects.filter(email=validated_data['email']).exists():
              raise serializers.ValidationError({'email': 'This email is already registered...'})
-        return user.objects.create(**validated_data) 
+        return user.objects.create(**validated_data)
+
+class DataShareSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DataShare
+        fields = ['id', 'sender_email', 'receiver_email', 'status', 'is_active', 
+                 'shared_at', 'responded_at', 'stopped_at', 'shared_data']
+        read_only_fields = ['id', 'shared_at', 'responded_at', 'stopped_at', 'shared_data']
+
+class ShareNotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShareNotification
+        fields = ['id', 'data_share', 'recipient_email', 'notification_type', 
+                 'message', 'is_read', 'created_at']
+        read_only_fields = ['id', 'created_at']

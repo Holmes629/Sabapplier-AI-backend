@@ -9,6 +9,90 @@ class Token(models.Model):
     user_id = models.IntegerField()
     is_used = models.BooleanField(default=False)
     
+class DataShare(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('declined', 'Declined'),
+        ('stopped', 'Stopped'),
+    ]
+    
+    sender_email = models.EmailField()  # User who shares their data
+    receiver_email = models.EmailField()  # Friend who receives the data
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    is_active = models.BooleanField(default=True)  # Sender can control this
+    shared_at = models.DateTimeField(auto_now_add=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+    stopped_at = models.DateTimeField(null=True, blank=True)
+    
+    # Store shared data at the time of sharing (snapshot)
+    shared_data = models.JSONField(default=dict, blank=True)  # Complete user data snapshot
+    selected_documents = models.JSONField(default=list, blank=True)  # List of document types user selected to share
+    
+    class Meta:
+        unique_together = ('sender_email', 'receiver_email')  # Prevent duplicate shares
+    
+    def __str__(self):
+        return f"{self.sender_email} -> {self.receiver_email} ({self.status})"
+    
+    def save_shared_data(self, user_instance):
+        """Save a snapshot of user's autofill and OCR data"""
+        self.shared_data = {
+            'personal_info': {
+                'fullName': user_instance.fullName,
+                'fathersName': user_instance.fathersName,
+                'mothersName': user_instance.mothersName,
+                'gender': user_instance.gender,
+                'dateofbirth': user_instance.dateofbirth.isoformat() if user_instance.dateofbirth else None,
+                'category': user_instance.category,
+                'disability': user_instance.disability,
+                'nationality': user_instance.nationality,
+                'domicileState': user_instance.domicileState,
+                'district': user_instance.district,
+                'mandal': user_instance.mandal,
+                'pincode': user_instance.pincode,
+                'maritalStatus': user_instance.maritalStatus,
+                'religion': user_instance.religion,
+                'phone_number': user_instance.phone_number,
+                'alt_phone_number': user_instance.alt_phone_number,
+            },
+            'addresses': {
+                'permanentAddress': user_instance.permanentAddress,
+                'correspondenceAddress': user_instance.correspondenceAddress,
+            },
+            'documents': {
+                'document_urls': user_instance.document_urls,
+                'document_texts': user_instance.document_texts,  # OCR extracted data
+            },
+            'profile': {
+                'google_profile_picture': user_instance.google_profile_picture,
+            },
+            'sharing_metadata': {
+                'selected_documents': self.selected_documents,  # Which documents user chose to share
+                'total_available_documents': len([k for k, v in (user_instance.document_urls or {}).items() if v]),
+            },
+            'timestamp': self.shared_at.isoformat() if self.shared_at else None,
+        }
+        self.save()
+
+class ShareNotification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('share_request', 'Share Request'),
+        ('share_accepted', 'Share Accepted'),
+        ('share_declined', 'Share Declined'),
+        ('share_stopped', 'Share Stopped'),
+    ]
+    
+    data_share = models.ForeignKey(DataShare, on_delete=models.CASCADE, related_name='notifications')
+    recipient_email = models.EmailField()
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.notification_type} for {self.recipient_email}"
+
 def passport_size_photo_upload_path(instance, filename):
     ext = filename.split('.')[-1] # Get the file extension
     filename = f"{instance.email.split('@')[0]}_passport_size_photo.{ext}" 

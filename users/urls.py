@@ -25,6 +25,15 @@ urlpatterns = [
     path('profile/<str:email>/', views.get_profile, name='profile'),
     path('extension/login', views.extension_login_view, name='extension_login_view'),
     path('extension/auto-fill/', views.auto_fill_extension, name='auto-fill-extension'),
+    
+    # Data sharing endpoints
+    path('share/send/', views.share_data_with_friend, name='share_data_with_friend'),
+    path('share/respond/', views.respond_to_share_request, name='respond_to_share_request'),
+    path('share/stop/', views.stop_data_sharing, name='stop_data_sharing'),
+    path('share/get-data/', views.get_shared_data, name='get_shared_data'),
+    path('share/refresh-data/', views.refresh_shared_data, name='refresh_shared_data'),
+    path('notifications/', views.get_user_notifications, name='get_user_notifications'),
+    path('shares/', views.get_user_shares, name='get_user_shares'),
 ]
 
 if settings.DEBUG:
