@@ -176,6 +176,7 @@ class user(models.Model):
     google_profile_picture = models.URLField(null=True, blank=True)  # Store Google profile picture URL
     document_urls = models.JSONField(default=dict, null=True)
     document_texts = models.JSONField(default=dict, null=True)
+    extra_details = models.JSONField(default=list, null=True, blank=True)
 
     def __str__(self):
         return self.email

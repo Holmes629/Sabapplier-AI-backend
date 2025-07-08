@@ -34,6 +34,19 @@ urlpatterns = [
     path('share/refresh-data/', views.refresh_shared_data, name='refresh_shared_data'),
     path('notifications/', views.get_user_notifications, name='get_user_notifications'),
     path('shares/', views.get_user_shares, name='get_user_shares'),
+    
+    # Learning functionality endpoints
+    path('extension/save-learned-data/', views.save_learned_form_data, name='save_learned_data'),
+    path('extension/process-learned-data/', views.process_learned_data, name='process_learned_data'),
+    path('extension/get-learned-data/', views.get_learned_data, name='get_learned_data'),
+    path('extension/delete-learned-data/', views.delete_learned_data, name='delete_learned_data'),
+    
+    # New popup mode and smart comparison endpoints
+    path('extension/toggle-popup-mode/', views.toggle_popup_mode, name='toggle_popup_mode'),
+    path('extension/get-popup-mode/', views.get_popup_mode, name='get_popup_mode'),
+    path('extension/get-autofill-data/', views.get_user_autofill_data, name='get_user_autofill_data'),
+    path('extension/compare-form-data/', views.compare_form_data, name='compare_form_data'),
+    path('extension/user-stats/', views.get_user_stats, name='get_user_stats'),
 ]
 
 if settings.DEBUG:

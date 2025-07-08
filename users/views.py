@@ -703,6 +703,479 @@ def auto_fill_extension(request):
         return Response(
             {"error": "Auto-fill failed"}, status=status.HTTP_400_BAD_REQUEST
         )
+######################  Narendra Singh Code Merge ####################
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def save_learned_form_data(request):
+    """
+    Save learned form data from user interactions
+    """
+    try:
+        print(f"Received save_learned_form_data request: {request.data}")
+        user_email = request.data.get('user_email')
+        form_data = request.data.get('form_data')  # Raw input data from page
+        current_url = request.data.get('current_url') or request.data.get('url')
+        
+        if not user_email or not form_data:
+            return Response({
+                "success": False, 
+                "message": "Missing required data"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Handle both object and array formats from frontend
+        if isinstance(form_data, list):
+            # Convert array format back to object format for consistency
+            form_data_obj = {}
+            for item in form_data:
+                if isinstance(item, dict):
+                    for key, value in item.items():
+                        if key != 'type':
+                            form_data_obj[key] = value
+            form_data = form_data_obj
+        
+        usr = user.objects.get(email=user_email)
+        
+        # Initialize extra_details if not exists
+        if usr.extra_details is None:
+            usr.extra_details = []
+        
+        # Add new learned data
+        learned_entry = {
+            "url": current_url,
+            "form_data": form_data,
+            "timestamp": datetime.now().isoformat(),
+            "processed": False  # Flag to indicate if Gemini has processed this
+        }
+        
+        usr.extra_details.append(learned_entry)
+        usr.save()
+        
+        return Response({
+            "success": True, 
+            "message": "Form data saved for learning"
+        }, status=status.HTTP_200_OK)
+        
+    except user.DoesNotExist:
+        return Response({
+            "success": False, 
+            "message": "User not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as err:
+        print(f"Error saving learned data: {err}")
+        return Response({
+            "success": False, 
+            "message": str(err)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def process_learned_data(request):
+    """
+    Process learned data with Gemini AI to convert to structured format
+    """
+    try:
+        user_email = request.data.get('user_email')
+        
+        if not user_email:
+            return Response({
+                "success": False, 
+                "message": "User email required"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        usr = user.objects.get(email=user_email)
+        
+        if not usr.extra_details:
+            return Response({
+                "success": False, 
+                "message": "No learned data to process"
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        processed_count = 0
+        
+        # Process unprocessed entries
+        for entry in usr.extra_details:
+            if not entry.get('processed', False):
+                # Send to Gemini for better formatting
+                processed_data = process_with_gemini(entry['form_data'])
+                if processed_data:
+                    entry['processed_data'] = processed_data
+                    entry['processed'] = True
+                    processed_count += 1
+        
+        usr.save()
+        
+        return Response({
+            "success": True, 
+            "message": f"Processed {processed_count} learned data entries",
+            "processed_count": processed_count
+        }, status=status.HTTP_200_OK)
+        
+    except user.DoesNotExist:
+        return Response({
+            "success": False, 
+            "message": "User not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as err:
+        print(f"Error processing learned data: {err}")
+        return Response({
+            "success": False, 
+            "message": str(err)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_learned_data(request):
+    """
+    Get user's learned form data with enhanced processing
+    """
+    try:
+        user_email = request.GET.get('user_email')
+        
+        if not user_email:
+            return Response({
+                "success": False, 
+                "message": "User email required"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        usr = user.objects.get(email=user_email)
+        
+        if not usr.extra_details:
+            return Response({
+                "success": True, 
+                "learned_data": [],
+                "processed_data": [],
+                "count": 0
+            }, status=status.HTTP_200_OK)
+        
+        # Use the new processing function from learning_api
+        processed_entries = process_learned_data_for_display(usr.extra_details)
+        
+        return Response({
+            "success": True, 
+            "learned_data": usr.extra_details,  # Original data
+            "processed_data": processed_entries,  # Processed for frontend
+            "count": len(processed_entries)
+        }, status=status.HTTP_200_OK)
+        
+    except user.DoesNotExist:
+        return Response({
+            "success": False, 
+            "message": "User not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as err:
+        print(f"Error getting learned data: {err}")
+        return Response({
+            "success": False, 
+            "message": str(err)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def delete_learned_data(request):
+    try:
+        user_email = request.data.get('user_email')
+        index = request.data.get('index')
+        
+        if not user_email:
+            return Response({'success': False, 'error': 'User email is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        usr = user.objects.filter(email=user_email).first()
+        if not usr:
+            return Response({'success': False, 'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if usr.extra_details is None:
+            usr.extra_details = []
+        
+        if index is not None and 0 <= index < len(usr.extra_details):
+            usr.extra_details.pop(index)
+            usr.save()
+            return Response({'success': True, 'message': 'Data entry deleted successfully'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'success': False, 'error': 'Invalid index'}, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Exception as e:
+        print(f"Error deleting learned data: {e}")
+        return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+# New view functions for popup mode and smart comparison
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def toggle_popup_mode(request):
+    try:
+        user_email = request.data.get('user_email')
+        enabled = request.data.get('enabled', False)
+        
+        if not user_email:
+            return Response({'success': False, 'error': 'User email is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        usr = user.objects.filter(email=user_email).first()
+        if not usr:
+            return Response({'success': False, 'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Store popup mode preference in user's extra_details
+        if usr.extra_details is None:
+            usr.extra_details = []
+        
+        # Find existing popup mode setting or create new one
+        popup_setting = None
+        for i, detail in enumerate(usr.extra_details):
+            if isinstance(detail, dict) and detail.get('type') == 'popup_mode':
+                popup_setting = i
+                break
+        
+        if popup_setting is not None:
+            usr.extra_details[popup_setting]['enabled'] = enabled
+            usr.extra_details[popup_setting]['last_updated'] = datetime.now().isoformat()
+        else:
+            usr.extra_details.append({
+                'type': 'popup_mode',
+                'enabled': enabled,
+                'created_at': datetime.now().isoformat(),
+                'last_updated': datetime.now().isoformat()
+            })
+        
+        usr.save()
+        
+        # Log the action for debugging
+        print(f"Popup mode {'enabled' if enabled else 'disabled'} for user: {user_email}")
+        
+        return Response({
+            'success': True, 
+            'enabled': enabled,
+            'message': f'Popup mode {"enabled" if enabled else "disabled"} successfully',
+            'timestamp': datetime.now().isoformat()
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error toggling popup mode: {e}")
+        return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_popup_mode(request):
+    try:
+        user_email = request.GET.get('user_email')
+        
+        if not user_email:
+            return Response({'success': False, 'error': 'User email is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        usr = user.objects.filter(email=user_email).first()
+        if not usr:
+            return Response({'success': False, 'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Default to disabled if no setting found
+        enabled = False
+        last_updated = None
+        
+        if usr.extra_details:
+            for detail in usr.extra_details:
+                if isinstance(detail, dict) and detail.get('type') == 'popup_mode':
+                    enabled = detail.get('enabled', False)
+                    last_updated = detail.get('last_updated')
+                    break
+        
+        return Response({
+            'success': True,
+            'enabled': enabled,
+            'last_updated': last_updated,
+            'user_email': user_email
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error getting popup mode: {e}")
+        return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_user_autofill_data(request):
+    try:
+        user_email = request.GET.get('user_email')
+        
+        if not user_email:
+            return Response({'success': False, 'error': 'User email is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        usr = user.objects.filter(email=user_email).first()
+        if not usr:
+            return Response({'success': False, 'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get user's autofill data
+        autofill_data = get_autofill_data(usr)
+        
+        # Add metadata for better tracking
+        response_data = {
+            'success': True,
+            'autofill_data': autofill_data,
+            'user_email': user_email,
+            'data_count': len(autofill_data) if autofill_data else 0,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        print(f"Retrieved {len(autofill_data) if autofill_data else 0} autofill data points for user: {user_email}")
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error getting user autofill data: {e}")
+        return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def compare_form_data(request):
+    try:
+        user_email = request.data.get('user_email')
+        form_data = request.data.get('form_data', [])
+        current_url = request.data.get('url', '')
+        
+        if not user_email:
+            return Response({'success': False, 'error': 'User email is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        usr = user.objects.filter(email=user_email).first()
+        if not usr:
+            return Response({'success': False, 'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get user's existing autofill data
+        existing_autofill_data = get_autofill_data(usr)
+        
+        # Create a mapping of field names to values from existing autofill data
+        existing_field_values = {}
+        for field_data in existing_autofill_data:
+            for field_name, field_value in field_data.items():
+                if field_name != 'type' and field_value:
+                    # Normalize field name for comparison (remove brackets, quotes, etc.)
+                    normalized_name = field_name.replace('[', '').replace(']', '').replace("'", '').replace('"', '').replace('name=', '').replace('#', '').replace('.', '')
+                    existing_field_values[normalized_name] = field_value
+        
+        # Find form data that differs from existing autofill data
+        different_data = []
+        new_fields = []
+        updated_fields = []
+        
+        for field_data in form_data:
+            for field_name, field_value in field_data.items():
+                if field_name != 'type' and field_value and field_value.strip():
+                    # Normalize field name for comparison
+                    normalized_name = field_name.replace('[', '').replace(']', '').replace("'", '').replace('"', '').replace('name=', '').replace('#', '').replace('.', '')
+                    
+                    # Check if this field exists in existing data
+                    if normalized_name in existing_field_values:
+                        existing_value = existing_field_values[normalized_name]
+                        # If values are different, include this field
+                        if existing_value != field_value:
+                            different_data.append(field_data)
+                            updated_fields.append({
+                                'field': normalized_name,
+                                'old_value': existing_value,
+                                'new_value': field_value
+                            })
+                            break
+                    else:
+                        # This is a new field that doesn't exist in autofill data
+                        different_data.append(field_data)
+                        new_fields.append(normalized_name)
+                        break
+        
+        # Enhanced response with more detailed information
+        response_data = {
+            'success': True,
+            'different_data': different_data,
+            'total_form_fields': len(form_data),
+            'different_fields': len(different_data),
+            'existing_fields_count': len(existing_field_values),
+            'new_fields_count': len(new_fields),
+            'updated_fields_count': len(updated_fields),
+            'new_fields': new_fields,
+            'updated_fields': updated_fields,
+            'user_email': user_email,
+            'current_url': current_url,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        print(f"Form comparison for {user_email}: {len(different_data)} different fields out of {len(form_data)} total fields")
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error comparing form data: {e}")
+        return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_user_stats(request):
+    try:
+        user_email = request.GET.get('user_email')
+        
+        if not user_email:
+            return Response({'success': False, 'error': 'User email is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        usr = user.objects.filter(email=user_email).first()
+        if not usr:
+            return Response({'success': False, 'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get user's autofill data
+        autofill_data = get_autofill_data(usr)
+        
+        # Get popup mode status
+        popup_enabled = False
+        if usr.extra_details:
+            for detail in usr.extra_details:
+                if isinstance(detail, dict) and detail.get('type') == 'popup_mode':
+                    popup_enabled = detail.get('enabled', False)
+                    break
+        
+        # Calculate statistics
+        total_data_points = len(autofill_data) if autofill_data else 0
+        
+        # Group data by website/domain
+        website_stats = {}
+        if autofill_data:
+            for field_data in autofill_data:
+                for field_name, field_value in field_data.items():
+                    if field_name != 'type' and field_value:
+                        # Extract domain from field name or use default
+                        domain = 'Unknown'
+                        if hasattr(field_data, 'url') and field_data.url:
+                            try:
+                                from urllib.parse import urlparse
+                                domain = urlparse(field_data.url).netloc.replace('www.', '')
+                            except:
+                                domain = 'Unknown'
+                        
+                        if domain not in website_stats:
+                            website_stats[domain] = 0
+                        website_stats[domain] += 1
+        
+        # Get user profile completion stats
+        profile_fields = ['fullname', 'email', 'phone', 'address', 'city', 'state', 'pincode']
+        completed_fields = sum(1 for field in profile_fields if getattr(usr, field, None))
+        profile_completion = (completed_fields / len(profile_fields)) * 100 if profile_fields else 0
+        
+        stats = {
+            'success': True,
+            'user_email': user_email,
+            'total_data_points': total_data_points,
+            'popup_mode_enabled': popup_enabled,
+            'profile_completion_percentage': round(profile_completion, 2),
+            'websites_count': len(website_stats),
+            'website_stats': website_stats,
+            'last_activity': usr.updated_at.isoformat() if hasattr(usr, 'updated_at') else None,
+            'account_created': usr.created_at.isoformat() if hasattr(usr, 'created_at') else None,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        print(f"Generated stats for user {user_email}: {total_data_points} data points across {len(website_stats)} websites")
+        
+        return Response(stats, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error getting user stats: {e}")
+        return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
 
 
 ######################  DATA SHARING ENDPOINTS ####################
