@@ -13,6 +13,7 @@ def extract_form_only(raw_html):
 
 def get_autofill_data(raw_html, user_data):
     try:
+
         api_key = "AIzaSyC_OPZO2FLYsAs-Gtvjx-5AQGYKBDUul5k"
         form_data = extract_form_only(raw_html)
         
@@ -42,6 +43,7 @@ def get_autofill_data(raw_html, user_data):
                         mock_data.append({selector: user_data.get('permanentAddress', ''), 'type': 'input'})
                     
             return json.dumps(mock_data)
+
 
         # Stage 1: Prompt to generate autofill data
         instructions = (

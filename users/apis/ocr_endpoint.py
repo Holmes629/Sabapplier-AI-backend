@@ -10,7 +10,7 @@ from django.conf import settings
 
 def get_structured_data_from_raw_data(raw_data):
     # fetch structured data from ai api using raw data
-    api_key = "AIzaSyC_OPZO2FLYsAs-Gtvjx-5AQGYKBDUul5k"
+    api_key = "AIzaSyB5imrkHYR7SEewNu4V1uSPuOTdirjduYs"
     instructions =" I have provided raw data, extract structured data from and format it as a json object and return only json don't generate anything else."
     
     user_prompt = raw_data + instructions   

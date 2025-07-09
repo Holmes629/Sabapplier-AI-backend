@@ -40,7 +40,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -57,14 +56,14 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
@@ -131,28 +130,59 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # White listing the localhost:3000 port
 # for React
+CORS_ALLOW_ALL_ORIGINS = False  # Explicitly set to False for security
 CORS_ORIGIN_WHITELIST = (
     "https://sabapplier.com",
     "http://sabapplier.com",
     "https://www.sabapplier.com",
     "http://www.sabapplier.com",
     'http://localhost:3000',
+    'http://localhost:8000',
+    'chrome-extension://*'
 )
 CORS_ALLOWED_ORIGINS = [
     "https://sabapplier.com",
     "http://sabapplier.com",
     "https://www.sabapplier.com",
     "http://www.sabapplier.com",
-    "http://localhost:3000",  # Allow frontend to access backend
+    "http://localhost:3000",
+    "http://localhost:8000",
 ] 
+
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^chrome-extension://.+$",  # allow all extensions temporarily
+    r"^chrome-extension://[a-zA-Z0-9-]+$",  # More specific pattern for chrome extensions
     r"^http://localhost:.*$",    # if testing via localhost too
 ]
 
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies and authentication
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
-CSRF_TRUSTED_ORIGINS = ["https://api.sabapplier.com", "http://api.sabapplier.com", "http://localhost:3000"]  # Prevent CSRF issues
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://api.sabapplier.com",
+    "http://api.sabapplier.com",
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "chrome-extension://*"
+]  # Prevent CSRF issues
 
 
 # Internationalization
@@ -213,3 +243,5 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+
+print("Extension login view hit")
