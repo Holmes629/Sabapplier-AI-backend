@@ -36,7 +36,26 @@ class DataShare(models.Model):
         return f"{self.sender_email} -> {self.receiver_email} ({self.status})"
     
     def save_shared_data(self, user_instance):
-        """Save a snapshot of user's autofill and OCR data"""
+        """Save a snapshot of user's autofill and OCR data for selected documents only"""
+        
+        # Filter document URLs and texts to only include selected documents
+        selected_document_urls = {}
+        selected_document_texts = {}
+        
+        # Only include documents if user has selected specific documents
+        if self.selected_documents and len(self.selected_documents) > 0 and user_instance.document_urls:
+            for doc_type in self.selected_documents:
+                # Include document URL if it exists
+                if doc_type in user_instance.document_urls and user_instance.document_urls[doc_type]:
+                    selected_document_urls[doc_type] = user_instance.document_urls[doc_type]
+                
+                # Include OCR text if it exists
+                if user_instance.document_texts and doc_type in user_instance.document_texts:
+                    selected_document_texts[doc_type] = user_instance.document_texts[doc_type]
+        
+        # Sharing metadata with more details
+        sharing_type = "selective" if self.selected_documents and len(self.selected_documents) > 0 else "profile_only"
+        
         self.shared_data = {
             'personal_info': {
                 'fullName': user_instance.fullName,
@@ -61,15 +80,19 @@ class DataShare(models.Model):
                 'correspondenceAddress': user_instance.correspondenceAddress,
             },
             'documents': {
-                'document_urls': user_instance.document_urls,
-                'document_texts': user_instance.document_texts,  # OCR extracted data
+                'document_urls': selected_document_urls,  # Only selected documents (empty if none selected)
+                'document_texts': selected_document_texts,  # Only OCR data for selected documents (empty if none selected)
             },
             'profile': {
                 'google_profile_picture': user_instance.google_profile_picture,
             },
             'sharing_metadata': {
+                'sharing_type': sharing_type,  # "selective" or "profile_only"
                 'selected_documents': self.selected_documents,  # Which documents user chose to share
+                'total_selected_documents': len(self.selected_documents) if self.selected_documents else 0,
                 'total_available_documents': len([k for k, v in (user_instance.document_urls or {}).items() if v]),
+                'shared_documents_count': len(selected_document_urls),
+                'includes_documents': len(selected_document_urls) > 0,
             },
             'timestamp': self.shared_at.isoformat() if self.shared_at else None,
         }

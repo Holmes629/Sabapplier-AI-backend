@@ -47,6 +47,9 @@ urlpatterns = [
     path('extension/get-autofill-data/', views.get_user_autofill_data, name='get_user_autofill_data'),
     path('extension/compare-form-data/', views.compare_form_data, name='compare_form_data'),
     path('extension/user-stats/', views.get_user_stats, name='get_user_stats'),
+
+    # Shared accounts endpoint
+    path('shared-accounts/', views.get_shared_accounts, name='get_shared_accounts'),
 ]
 
 if settings.DEBUG:

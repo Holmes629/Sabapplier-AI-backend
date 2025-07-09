@@ -13,8 +13,35 @@ def extract_form_only(raw_html):
 
 def get_autofill_data(raw_html, user_data):
     try:
-        api_key = os.getenv("gemini_api_key")
+        api_key = "AIzaSyC_OPZO2FLYsAs-Gtvjx-5AQGYKBDUul5k"
         form_data = extract_form_only(raw_html)
+        
+        # If no API key is available, return mock autofill data for testing
+        if not api_key:
+            print("No Gemini API key found, returning mock autofill data")
+            soup = BeautifulSoup(raw_html, 'html.parser')
+            mock_data = []
+            
+            # Find input fields and provide mock data based on user data
+            inputs = soup.find_all(['input', 'select', 'textarea'])
+            for input_field in inputs:
+                field_name = input_field.get('name')
+                field_type = input_field.get('type', 'text')
+                
+                if field_name:
+                    selector = f'input[name="{field_name}"]'
+                    
+                    # Map common field names to user data
+                    if field_name in ['email', 'emailAddress', 'user_email']:
+                        mock_data.append({selector: user_data.get('email', ''), 'type': 'input'})
+                    elif field_name in ['fullName', 'name', 'full_name', 'userName']:
+                        mock_data.append({selector: user_data.get('fullName', ''), 'type': 'input'})
+                    elif field_name in ['phone', 'phoneNumber', 'phone_number', 'mobile']:
+                        mock_data.append({selector: user_data.get('phone_number', ''), 'type': 'input'})
+                    elif field_name in ['address', 'permanentAddress']:
+                        mock_data.append({selector: user_data.get('permanentAddress', ''), 'type': 'input'})
+                    
+            return json.dumps(mock_data)
 
         # Stage 1: Prompt to generate autofill data
         instructions = (

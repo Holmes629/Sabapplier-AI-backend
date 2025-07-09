@@ -27,6 +27,7 @@ from .serializers import (
 from .models import user, Token, DataShare, ShareNotification
 from .apis.ocr_endpoint import get_ocr_data
 from .apis.fetch_autofill_data import get_autofill_data
+from .apis.learning_api import process_learned_data_for_display, process_with_gemini
 from .dropbox_storage import DropboxStorage  # import your custom storage
 
 
@@ -676,27 +677,62 @@ def extension_login_view(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def auto_fill_extension(request):
+    print("Inside auto_fill_extension function")
     try:
         html_data = request.data["html_data"]
         user_email = request.data["user_email"]
+        
+        # Check if this is a request to use shared account data
+        shared_account_email = request.data.get("shared_account_email")
+        share_id = request.data.get("share_id")
+        
+        # Determine which user's data to use for autofill
+        target_email = shared_account_email if shared_account_email else user_email
+        
+        print(f"Auto-fill request - User: {user_email}, Target data: {target_email}")
+        
         try:
-            usr = user.objects.get(email=user_email)
+            # If using shared account data, verify the sharing is valid
+            if shared_account_email:
+                print(f"Using shared account data from {shared_account_email}")
+                
+                # Verify that the sharing exists and is active
+                try:
+                    data_share = DataShare.objects.get(
+                        sender_email=shared_account_email,
+                        receiver_email=user_email,
+                        status='accepted',
+                        is_active=True
+                    )
+                    print(f"Valid data sharing found: {data_share.id}")
+                except DataShare.DoesNotExist:
+                    return Response(
+                        {"message": "No valid data sharing found", "autofill_data": {}},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+            
+            # Get the target user's data
+            usr = user.objects.get(email=target_email)
             user_data = UserSerializer(usr).data
             print("user_data:", user_data)
+            
             autofill_data = get_autofill_data(html_data, user_data)
             print("autofill_data:", autofill_data)
+            
             return Response(
                 {
                     "message": "Auto-fill successful",
                     "autofill_data": autofill_data,
+                    "data_source": "shared" if shared_account_email else "own",
+                    "source_email": target_email
                 },
                 status=status.HTTP_200_OK,
             )
         except user.DoesNotExist:
-            print("User does not exist...")
+            print(f"User does not exist: {target_email}")
             return Response(
                 {"message": "User not found", "autofill_data": {}},
-                status=status.HTTP_404_OK,
+                status=status.HTTP_404_NOT_FOUND,
             )
     except Exception as err:
         print("Error:", err)
@@ -1003,7 +1039,10 @@ def get_user_autofill_data(request):
             return Response({'success': False, 'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         
         # Get user's autofill data
-        autofill_data = get_autofill_data(usr)
+        user_data = UserSerializer(usr).data
+        # For this endpoint, we'll return the user's structured data instead of calling autofill function
+        # since autofill_data function is meant for form filling, not data retrieval
+        autofill_data = user_data
         
         # Add metadata for better tracking
         response_data = {
@@ -1038,7 +1077,8 @@ def compare_form_data(request):
             return Response({'success': False, 'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         
         # Get user's existing autofill data
-        existing_autofill_data = get_autofill_data(usr)
+        user_data = UserSerializer(usr).data
+        existing_autofill_data = user_data
         
         # Create a mapping of field names to values from existing autofill data
         existing_field_values = {}
@@ -1116,7 +1156,8 @@ def get_user_stats(request):
             return Response({'success': False, 'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         
         # Get user's autofill data
-        autofill_data = get_autofill_data(usr)
+        user_data = UserSerializer(usr).data
+        autofill_data = user_data
         
         # Get popup mode status
         popup_enabled = False
@@ -1127,26 +1168,27 @@ def get_user_stats(request):
                     break
         
         # Calculate statistics
-        total_data_points = len(autofill_data) if autofill_data else 0
+        # For stats, we should use the learned data from extra_details, not user profile data
+        learned_data = usr.extra_details if usr.extra_details else []
+        total_data_points = len(learned_data)
         
         # Group data by website/domain
         website_stats = {}
-        if autofill_data:
-            for field_data in autofill_data:
-                for field_name, field_value in field_data.items():
-                    if field_name != 'type' and field_value:
-                        # Extract domain from field name or use default
+        if learned_data:
+            for entry in learned_data:
+                if isinstance(entry, dict) and entry.get('url'):
+                    try:
+                        from urllib.parse import urlparse
+                        domain = urlparse(entry['url']).netloc.replace('www.', '')
+                    except:
                         domain = 'Unknown'
-                        if hasattr(field_data, 'url') and field_data.url:
-                            try:
-                                from urllib.parse import urlparse
-                                domain = urlparse(field_data.url).netloc.replace('www.', '')
-                            except:
-                                domain = 'Unknown'
                         
-                        if domain not in website_stats:
-                            website_stats[domain] = 0
-                        website_stats[domain] += 1
+                    form_data = entry.get('form_data', {})
+                    field_count = len(form_data) if isinstance(form_data, dict) else 0
+                    
+                    if domain not in website_stats:
+                        website_stats[domain] = 0
+                    website_stats[domain] += field_count
         
         # Get user profile completion stats
         profile_fields = ['fullname', 'email', 'phone', 'address', 'city', 'state', 'pincode']
@@ -1197,11 +1239,12 @@ def share_data_with_friend(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if not selected_documents:
-            return Response(
-                {"error": "Please select at least one document to share"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Allow sharing without selecting documents (will share only personal info and addresses)
+        # if not selected_documents:
+        #     return Response(
+        #         {"error": "Please select at least one document to share"},
+        #         status=status.HTTP_400_BAD_REQUEST
+        #     )
         
         if sender_email == receiver_email:
             return Response(
@@ -1635,5 +1678,78 @@ def refresh_shared_data(request):
         print(f"Refresh shared data error: {e}")
         return Response(
             {"error": "Failed to refresh shared data"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_shared_accounts(request):
+    """
+    Get accounts that have shared data with the current user
+    Returns both the user's own account and accounts that have shared data with them
+    """
+    try:
+        user_email = request.GET.get("email", "").strip().lower()
+        
+        if not user_email:
+            return Response(
+                {"error": "Email parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        accounts = []
+        
+        # Add the user's own account
+        try:
+            current_user = user.objects.get(email=user_email)
+            accounts.append({
+                "email": current_user.email,
+                "name": current_user.fullName or current_user.email.split('@')[0],
+                "type": "self",
+                "shared_at": None,
+                "share_id": None
+            })
+        except user.DoesNotExist:
+            pass
+        
+        # Get accepted shares from other users to current user
+        accepted_shares = DataShare.objects.filter(
+            receiver_email=user_email,
+            status='accepted',
+            is_active=True
+        )
+        
+        # Add each shared account
+        for share in accepted_shares:
+            try:
+                # Get the sender's user data
+                sender_user = user.objects.get(email=share.sender_email)
+                accounts.append({
+                    "email": share.sender_email,
+                    "name": sender_user.fullName or share.sender_email.split('@')[0],
+                    "type": "shared",
+                    "shared_at": share.shared_at.isoformat() if share.shared_at else None,
+                    "share_id": str(share.id)
+                })
+            except user.DoesNotExist:
+                # If sender user doesn't exist, still include the share with email only
+                accounts.append({
+                    "email": share.sender_email,
+                    "name": share.sender_email.split('@')[0],
+                    "type": "shared",
+                    "shared_at": share.shared_at.isoformat() if share.shared_at else None,
+                    "share_id": str(share.id)
+                })
+        
+        return Response({
+            "accounts": accounts,
+            "total_count": len(accounts)
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Get shared accounts error: {e}")
+        return Response(
+            {"error": "Failed to get shared accounts"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
