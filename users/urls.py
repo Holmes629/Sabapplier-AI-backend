@@ -21,6 +21,7 @@ urlpatterns = [
     path('delete/', views.delete_data, name='delete_data'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('check-access/', views.check_access_status, name='check_access_status'),
     path('profile/', views.get_profile, name='profile'),
     path('profile/<str:email>/', views.get_profile, name='profile'),
     path('extension/login', views.extension_login_view, name='extension_login_view'),

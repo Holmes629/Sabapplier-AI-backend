@@ -29,6 +29,8 @@ class DataShare(models.Model):
     shared_data = models.JSONField(default=dict, blank=True)  # Complete user data snapshot
     selected_documents = models.JSONField(default=list, blank=True)  # List of document types user selected to share
     
+
+    
     class Meta:
         unique_together = ('sender_email', 'receiver_email')  # Prevent duplicate shares
     
@@ -203,3 +205,39 @@ class user(models.Model):
 
     def __str__(self):
         return self.email
+
+
+class WebsiteAccess(models.Model):
+    """
+    Model to control website access for users.
+    Admin can enable/disable access for each user through Django admin.
+    """
+    user = models.OneToOneField(user, on_delete=models.CASCADE, related_name='website_access')
+    is_enabled = models.BooleanField(default=False, help_text="Enable access to the main application")
+    enabled_date = models.DateTimeField(null=True, blank=True, help_text="Date when access was enabled")
+    disabled_date = models.DateTimeField(null=True, blank=True, help_text="Date when access was disabled")
+    notes = models.TextField(blank=True, help_text="Admin notes about this user's access")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Website Access"
+        verbose_name_plural = "Website Access"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        status = "Enabled" if self.is_enabled else "Disabled"
+        return f"{self.user.email} - {status}"
+
+    def save(self, *args, **kwargs):
+        # Auto-set enabled_date when access is granted
+        if self.is_enabled and not self.enabled_date:
+            from django.utils import timezone
+            self.enabled_date = timezone.now()
+        
+        # Auto-set disabled_date when access is revoked
+        if not self.is_enabled and self.enabled_date and not self.disabled_date:
+            from django.utils import timezone
+            self.disabled_date = timezone.now()
+            
+        super().save(*args, **kwargs)

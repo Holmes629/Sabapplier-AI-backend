@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 import json
 
-from .models import user, Token, DataShare, ShareNotification
+from .models import user, Token, DataShare, ShareNotification, WebsiteAccess
 
 class usersAdmin(admin.ModelAdmin):
     list_display=('email', 'password', 'fullName', 'fathersName', 'mothersName', 'gender', 'dateofbirth', 'category', 'disability', 'nationality', 'domicileState', 'maritalStatus', 'religion', 'permanentAddress', 'correspondenceAddress', 'phone_number', 'alt_phone_number', 'document_urls', 'document_texts')
@@ -83,9 +83,57 @@ class ShareNotificationAdmin(admin.ModelAdmin):
         }),
     )
 
+class WebsiteAccessAdmin(admin.ModelAdmin):
+    list_display = ('user_email', 'user_full_name', 'is_enabled', 'enabled_date', 'disabled_date', 'created_at')
+    list_filter = ('is_enabled', 'enabled_date', 'created_at')
+    search_fields = ('user__email', 'user__fullName', 'notes')
+    readonly_fields = ('created_at', 'updated_at')
+    list_per_page = 25
+    ordering = ['-created_at']
+    
+    def user_email(self, obj):
+        return obj.user.email if obj.user else 'No User'
+    user_email.short_description = 'Email'
+    user_email.admin_order_field = 'user__email'
+    
+    def user_full_name(self, obj):
+        return obj.user.fullName if obj.user and obj.user.fullName else 'Not Set'
+    user_full_name.short_description = 'Full Name'
+    user_full_name.admin_order_field = 'user__fullName'
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
+    
+    fieldsets = (
+        ('User Information', {
+            'fields': ('user',)
+        }),
+        ('Access Control', {
+            'fields': ('is_enabled', 'notes'),
+            'description': 'Enable or disable access to the main application for this user.'
+        }),
+        ('Timestamps', {
+            'fields': ('enabled_date', 'disabled_date', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        return True
+    
+    def has_change_permission(self, request, obj=None):
+        return True
+    
+    def has_delete_permission(self, request, obj=None):
+        return True
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
+
 admin.site.register(user, usersAdmin)
 admin.site.register(Token)
 admin.site.register(DataShare, DataShareAdmin)
 admin.site.register(ShareNotification, ShareNotificationAdmin)
+admin.site.register(WebsiteAccess, WebsiteAccessAdmin)
 
 

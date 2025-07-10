@@ -364,11 +364,20 @@ def register(request):
         )
     serializer = UserSerializer(data=data)
     if serializer.is_valid():
-        serializer.save()
+        user_instance = serializer.save()
+        
+        # Create WebsiteAccess entry for the new user (disabled by default)
+        from .models import WebsiteAccess
+        WebsiteAccess.objects.create(
+            user=user_instance,
+            is_enabled=False,  # Default disabled - admin needs to enable
+            notes="User registered and added to waitlist"
+        )
+        
         return Response(
             {
                 "success": True,
-                "message": "You are now registered on our website!",
+                "message": "You are now registered and added to our waitlist!",
             },
             status=status.HTTP_200_OK,
         )
@@ -1741,4 +1750,55 @@ def get_shared_accounts(request):
         return Response(
             {"error": "Failed to get shared accounts"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def check_access_status(request):
+    """
+    Check if a user has access to the main application.
+    Returns access status and user information.
+    """
+    email = request.GET.get("email")
+    if not email:
+        return Response(
+            {"success": False, "message": "Email parameter is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    try:
+        usr = user.objects.get(email=email)
+        
+        # Try to get WebsiteAccess object
+        try:
+            access_obj = usr.website_access
+            is_enabled = access_obj.is_enabled
+            enabled_date = access_obj.enabled_date
+        except:
+            # If WebsiteAccess doesn't exist, create it with disabled status
+            from .models import WebsiteAccess
+            access_obj = WebsiteAccess.objects.create(
+                user=usr,
+                is_enabled=False,
+                notes="Created during access check"
+            )
+            is_enabled = False
+            enabled_date = None
+        
+        return Response(
+            {
+                "success": True,
+                "access_enabled": is_enabled,
+                "enabled_date": enabled_date,
+                "user_email": usr.email,
+                "user_name": usr.fullName,
+                "message": "Access granted" if is_enabled else "User is on waitlist"
+            },
+            status=status.HTTP_200_OK,
+        )
+        
+    except user.DoesNotExist:
+        return Response(
+            {"success": False, "message": "User does not exist"},
+            status=status.HTTP_404_NOT_FOUND,
         )
