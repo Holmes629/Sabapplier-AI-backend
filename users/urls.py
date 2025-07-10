@@ -25,6 +25,31 @@ urlpatterns = [
     path('profile/<str:email>/', views.get_profile, name='profile'),
     path('extension/login', views.extension_login_view, name='extension_login_view'),
     path('extension/auto-fill/', views.auto_fill_extension, name='auto-fill-extension'),
+    
+    # Data sharing endpoints
+    path('share/send/', views.share_data_with_friend, name='share_data_with_friend'),
+    path('share/respond/', views.respond_to_share_request, name='respond_to_share_request'),
+    path('share/stop/', views.stop_data_sharing, name='stop_data_sharing'),
+    path('share/get-data/', views.get_shared_data, name='get_shared_data'),
+    path('share/refresh-data/', views.refresh_shared_data, name='refresh_shared_data'),
+    path('notifications/', views.get_user_notifications, name='get_user_notifications'),
+    path('shares/', views.get_user_shares, name='get_user_shares'),
+    
+    # Learning functionality endpoints
+    path('extension/save-learned-data/', views.save_learned_form_data, name='save_learned_data'),
+    path('extension/process-learned-data/', views.process_learned_data, name='process_learned_data'),
+    path('extension/get-learned-data/', views.get_learned_data, name='get_learned_data'),
+    path('extension/delete-learned-data/', views.delete_learned_data, name='delete_learned_data'),
+    
+    # New popup mode and smart comparison endpoints
+    path('extension/toggle-popup-mode/', views.toggle_popup_mode, name='toggle_popup_mode'),
+    path('extension/get-popup-mode/', views.get_popup_mode, name='get_popup_mode'),
+    path('extension/get-autofill-data/', views.get_user_autofill_data, name='get_user_autofill_data'),
+    path('extension/compare-form-data/', views.compare_form_data, name='compare_form_data'),
+    path('extension/user-stats/', views.get_user_stats, name='get_user_stats'),
+
+    # Shared accounts endpoint
+    path('shared-accounts/', views.get_shared_accounts, name='get_shared_accounts'),
 ]
 
 if settings.DEBUG:

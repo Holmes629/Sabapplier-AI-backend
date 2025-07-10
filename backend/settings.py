@@ -228,6 +228,14 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = "1014179036736-d8et6ht2jf4kf9flcol0uv0ktv33v5fh.apps.googleusercontent.com"
 
+# Django REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',  # Default to allow any for development
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [],  # No authentication required by default
+}
+
 # Cache configuration for OTP storage
 CACHES = {
     'default': {
