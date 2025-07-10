@@ -309,6 +309,20 @@ def google_signup(request):
                     password="",  # Placeholder password for Google users
                 )
 
+                # Create WebsiteAccess entry for Google signup user
+                try:
+                    from .models import WebsiteAccess
+                    website_access, created = WebsiteAccess.objects.get_or_create(
+                        user=new_user,
+                        defaults={
+                            'is_enabled': False,  # Default disabled - admin needs to enable
+                            'notes': "User registered via Google OAuth and added to waitlist"
+                        }
+                    )
+                    print(f"WebsiteAccess {'created' if created else 'already exists'} for Google user {new_user.email}")
+                except Exception as e:
+                    print(f"Error creating WebsiteAccess for Google user {new_user.email}: {e}")
+
                 return Response(
                     {
                         "success": True,
@@ -366,13 +380,20 @@ def register(request):
     if serializer.is_valid():
         user_instance = serializer.save()
         
-        # Create WebsiteAccess entry for the new user (disabled by default)
-        from .models import WebsiteAccess
-        WebsiteAccess.objects.create(
-            user=user_instance,
-            is_enabled=False,  # Default disabled - admin needs to enable
-            notes="User registered and added to waitlist"
-        )
+        try:
+            # Create WebsiteAccess entry for the new user (disabled by default)
+            from .models import WebsiteAccess
+            website_access, created = WebsiteAccess.objects.get_or_create(
+                user=user_instance,
+                defaults={
+                    'is_enabled': False,  # Default disabled - admin needs to enable
+                    'notes': "User registered and added to waitlist"
+                }
+            )
+            print(f"WebsiteAccess {'created' if created else 'already exists'} for {user_instance.email}")
+        except Exception as e:
+            print(f"Error creating WebsiteAccess for {user_instance.email}: {e}")
+            # Continue anyway - we can create it later via management command
         
         return Response(
             {
@@ -1752,14 +1773,14 @@ def get_shared_accounts(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-@api_view(["GET"])
+@api_view(["POST"])
 @permission_classes([AllowAny])
 def check_access_status(request):
     """
     Check if a user has access to the main application.
     Returns access status and user information.
     """
-    email = request.GET.get("email")
+    email = request.data.get("email")
     if not email:
         return Response(
             {"success": False, "message": "Email parameter is required"},
@@ -1773,8 +1794,9 @@ def check_access_status(request):
         try:
             access_obj = usr.website_access
             is_enabled = access_obj.is_enabled
-            enabled_date = access_obj.enabled_date
-        except:
+            enabled_date = access_obj.enabled_date.isoformat() if access_obj.enabled_date else None
+            print(f"Found WebsiteAccess for {email}: enabled={is_enabled}")
+        except user.website_access.RelatedObjectDoesNotExist:
             # If WebsiteAccess doesn't exist, create it with disabled status
             from .models import WebsiteAccess
             access_obj = WebsiteAccess.objects.create(
@@ -1784,11 +1806,17 @@ def check_access_status(request):
             )
             is_enabled = False
             enabled_date = None
+            print(f"Created WebsiteAccess for {email}: enabled={is_enabled}")
+        except Exception as e:
+            print(f"Error accessing WebsiteAccess for {email}: {e}")
+            # Default to disabled if there's any error
+            is_enabled = False
+            enabled_date = None
         
         return Response(
             {
                 "success": True,
-                "access_enabled": is_enabled,
+                "is_enabled": is_enabled,
                 "enabled_date": enabled_date,
                 "user_email": usr.email,
                 "user_name": usr.fullName,
