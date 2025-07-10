@@ -552,8 +552,25 @@ def login_view(request):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
         else:
+            # Check if profile is complete
+            profile_complete = all(
+                [
+                    usr.fullName,
+                    usr.dateofbirth,
+                    usr.correspondenceAddress,
+                    usr.phone_number,
+                ]
+            )
+            
+            # Return user data for frontend authentication state
             return Response(
-                {"success": True, "message": "You are now logged in!"},
+                {
+                    "success": True, 
+                    "message": "You are now logged in!",
+                    "user": UserSerializer(usr).data,
+                    "needsProfileCompletion": not profile_complete,
+                    "email": usr.email
+                },
                 status=status.HTTP_200_OK,
             )
     except user.DoesNotExist:
