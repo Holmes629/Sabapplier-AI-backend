@@ -37,67 +37,67 @@ class DataShare(models.Model):
     def __str__(self):
         return f"{self.sender_email} -> {self.receiver_email} ({self.status})"
     
-    def save_shared_data(self, user_instance):
-        """Save a snapshot of user's autofill and OCR data for selected documents only"""
-        
-        # Filter document URLs and texts to only include selected documents
+    def save_shared_data(self, user_instance, sharing_type="documents_only"):
+        """Save a snapshot of user's data for sharing, based on sharing_type."""
         selected_document_urls = {}
         selected_document_texts = {}
-        
-        # Only include documents if user has selected specific documents
         if self.selected_documents and len(self.selected_documents) > 0 and user_instance.document_urls:
             for doc_type in self.selected_documents:
-                # Include document URL if it exists
                 if doc_type in user_instance.document_urls and user_instance.document_urls[doc_type]:
                     selected_document_urls[doc_type] = user_instance.document_urls[doc_type]
-                
-                # Include OCR text if it exists
                 if user_instance.document_texts and doc_type in user_instance.document_texts:
                     selected_document_texts[doc_type] = user_instance.document_texts[doc_type]
-        
-        # Sharing metadata with more details
-        sharing_type = "selective" if self.selected_documents and len(self.selected_documents) > 0 else "profile_only"
-        
-        self.shared_data = {
-            'personal_info': {
-                'fullName': user_instance.fullName,
-                'fathersName': user_instance.fathersName,
-                'mothersName': user_instance.mothersName,
-                'gender': user_instance.gender,
-                'dateofbirth': user_instance.dateofbirth.isoformat() if user_instance.dateofbirth else None,
-                'category': user_instance.category,
-                'disability': user_instance.disability,
-                'nationality': user_instance.nationality,
-                'domicileState': user_instance.domicileState,
-                'district': user_instance.district,
-                'mandal': user_instance.mandal,
-                'pincode': user_instance.pincode,
-                'maritalStatus': user_instance.maritalStatus,
-                'religion': user_instance.religion,
-                'phone_number': user_instance.phone_number,
-                'alt_phone_number': user_instance.alt_phone_number,
-            },
-            'addresses': {
-                'permanentAddress': user_instance.permanentAddress,
-                'correspondenceAddress': user_instance.correspondenceAddress,
-            },
-            'documents': {
-                'document_urls': selected_document_urls,  # Only selected documents (empty if none selected)
-                'document_texts': selected_document_texts,  # Only OCR data for selected documents (empty if none selected)
-            },
-            'profile': {
-                'google_profile_picture': user_instance.google_profile_picture,
-            },
-            'sharing_metadata': {
-                'sharing_type': sharing_type,  # "selective" or "profile_only"
-                'selected_documents': self.selected_documents,  # Which documents user chose to share
-                'total_selected_documents': len(self.selected_documents) if self.selected_documents else 0,
-                'total_available_documents': len([k for k, v in (user_instance.document_urls or {}).items() if v]),
-                'shared_documents_count': len(selected_document_urls),
-                'includes_documents': len(selected_document_urls) > 0,
-            },
-            'timestamp': self.shared_at.isoformat() if self.shared_at else None,
+        sharing_metadata = {
+            'sharing_type': sharing_type,
+            'selected_documents': self.selected_documents,
+            'total_selected_documents': len(self.selected_documents) if self.selected_documents else 0,
+            'total_available_documents': len([k for k, v in (user_instance.document_urls or {}).items() if v]),
+            'shared_documents_count': len(selected_document_urls),
+            'includes_documents': len(selected_document_urls) > 0,
         }
+        if sharing_type == "documents_only":
+            self.shared_data = {
+                'documents': {
+                    'document_urls': selected_document_urls,
+                    'document_texts': selected_document_texts,
+                },
+                'sharing_metadata': sharing_metadata,
+                'timestamp': self.shared_at.isoformat() if self.shared_at else None,
+            }
+        else:
+            self.shared_data = {
+                'personal_info': {
+                    'fullName': user_instance.fullName,
+                    'fathersName': user_instance.fathersName,
+                    'mothersName': user_instance.mothersName,
+                    'gender': user_instance.gender,
+                    'dateofbirth': user_instance.dateofbirth.isoformat() if user_instance.dateofbirth else None,
+                    'category': user_instance.category,
+                    'disability': user_instance.disability,
+                    'nationality': user_instance.nationality,
+                    'domicileState': user_instance.domicileState,
+                    'district': user_instance.district,
+                    'mandal': user_instance.mandal,
+                    'pincode': user_instance.pincode,
+                    'maritalStatus': user_instance.maritalStatus,
+                    'religion': user_instance.religion,
+                    'phone_number': user_instance.phone_number,
+                    'alt_phone_number': user_instance.alt_phone_number,
+                },
+                'addresses': {
+                    'permanentAddress': user_instance.permanentAddress,
+                    'correspondenceAddress': user_instance.correspondenceAddress,
+                },
+                'documents': {
+                    'document_urls': selected_document_urls,
+                    'document_texts': selected_document_texts,
+                },
+                'profile': {
+                    'google_profile_picture': user_instance.google_profile_picture,
+                },
+                'sharing_metadata': sharing_metadata,
+                'timestamp': self.shared_at.isoformat() if self.shared_at else None,
+            }
         self.save()
 
 class ShareNotification(models.Model):

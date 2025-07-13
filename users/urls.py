@@ -35,6 +35,7 @@ urlpatterns = [
     path('share/refresh-data/', views.refresh_shared_data, name='refresh_shared_data'),
     path('notifications/', views.get_user_notifications, name='get_user_notifications'),
     path('shares/', views.get_user_shares, name='get_user_shares'),
+    path('notifications/mark-as-read/', views.mark_notification_as_read, name='mark_notification_as_read'),
     
     # Learning functionality endpoints
     path('extension/save-learned-data/', views.save_learned_form_data, name='save_learned_data'),

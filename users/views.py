@@ -1268,6 +1268,7 @@ def share_data_with_friend(request):
         sender_email = request.data.get("sender_email", "").strip().lower()
         receiver_email = request.data.get("receiver_email", "").strip().lower()
         selected_documents = request.data.get("selected_documents", [])
+        sharing_type = request.data.get("sharing_type", "documents_only")
         
         if not sender_email or not receiver_email:
             return Response(
@@ -1330,7 +1331,7 @@ def share_data_with_friend(request):
                 existing_share.stopped_at = None
                 existing_share.selected_documents = selected_documents
                 # Save updated shared data snapshot
-                existing_share.save_shared_data(sender_user)
+                existing_share.save_shared_data(sender_user, sharing_type)
                 data_share = existing_share
         else:
             # Create new sharing request
@@ -1342,7 +1343,7 @@ def share_data_with_friend(request):
                 selected_documents=selected_documents
             )
             # Save shared data snapshot
-            data_share.save_shared_data(sender_user)
+            data_share.save_shared_data(sender_user, sharing_type)
         
         # Create notification for receiver
         ShareNotification.objects.create(
@@ -1847,3 +1848,28 @@ def check_access_status(request):
             {"success": False, "message": "User does not exist"},
             status=status.HTTP_404_NOT_FOUND,
         )
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def mark_notification_as_read(request):
+    """
+    Mark a notification as read by its ID
+    """
+    try:
+        notification_id = request.data.get("notification_id")
+        if not notification_id:
+            return Response({"error": "Notification ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+        from .models import ShareNotification
+        try:
+            notification = ShareNotification.objects.get(id=notification_id)
+            print(f"[DEBUG] Before: Notification ID {notification.id}, is_read={notification.is_read}")
+            notification.is_read = True
+            notification.save()
+            print(f"[DEBUG] After: Notification ID {notification.id}, is_read={notification.is_read}")
+            return Response({"message": "Notification marked as read"}, status=status.HTTP_200_OK)
+        except ShareNotification.DoesNotExist:
+            print(f"[DEBUG] Notification ID {notification_id} not found.")
+            return Response({"error": "Notification not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"Mark notification as read error: {e}")
+        return Response({"error": "Failed to mark notification as read"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
