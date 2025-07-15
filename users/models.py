@@ -184,6 +184,14 @@ class user(models.Model):
     fathersName = models.CharField(max_length=255, null=True)
     mothersName = models.CharField(max_length=255, null=True)
     gender = models.CharField(max_length=10, choices=Gender_Choices, default='Select')
+    # New fields for autofill
+    hasChangedName = models.CharField(max_length=5, choices=[('Yes', 'Yes'), ('No', 'No')], null=True, blank=True)
+    changedNameDetail = models.CharField(max_length=255, null=True, blank=True)
+    motherTongue = models.CharField(max_length=255, null=True, blank=True)
+    # Referral system fields
+    referral_code = models.CharField(max_length=32, unique=True, null=True, blank=True)
+    referred_by = models.CharField(max_length=32, null=True, blank=True)
+    successful_referrals = models.IntegerField(default=0)
     dateofbirth = models.DateField(null=True)
     category = models.CharField(max_length=10, choices=Category_Choices, default='Select')
     disability = models.BooleanField(default=False)
@@ -202,6 +210,7 @@ class user(models.Model):
     document_urls = models.JSONField(default=dict, null=True)
     document_texts = models.JSONField(default=dict, null=True)
     extra_details = models.JSONField(default=list, null=True, blank=True)
+    custom_doc_categories = models.JSONField(default=dict, null=True, blank=True)
 
     def __str__(self):
         return self.email
@@ -241,3 +250,14 @@ class WebsiteAccess(models.Model):
             self.disabled_date = timezone.now()
             
         super().save(*args, **kwargs)
+
+
+class ContactUsRequest(models.Model):
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    subject = models.CharField(max_length=255)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} <{self.email}>: {self.subject} ({self.created_at})"

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 import json
 
-from .models import user, Token, DataShare, ShareNotification, WebsiteAccess
+from .models import user, Token, DataShare, ShareNotification, WebsiteAccess, ContactUsRequest
 
 class usersAdmin(admin.ModelAdmin):
     list_display=('email', 'password', 'fullName', 'fathersName', 'mothersName', 'gender', 'dateofbirth', 'category', 'disability', 'nationality', 'domicileState', 'maritalStatus', 'religion', 'permanentAddress', 'correspondenceAddress', 'phone_number', 'alt_phone_number', 'document_urls', 'document_texts')
@@ -129,6 +129,12 @@ class WebsiteAccessAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user')
+
+@admin.register(ContactUsRequest)
+class ContactUsRequestAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'subject', 'created_at')
+    search_fields = ('name', 'email', 'subject', 'message')
+    readonly_fields = ('name', 'email', 'subject', 'message', 'created_at')
 
 admin.site.register(user, usersAdmin)
 admin.site.register(Token)

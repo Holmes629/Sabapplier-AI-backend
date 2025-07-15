@@ -2,6 +2,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views
+from .views import contact_us
 
 urlpatterns = [
     # OTP endpoints
@@ -57,3 +58,7 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root = settings.STATIC_URL)
+
+urlpatterns += [
+    path('contact-us/', contact_us, name='contact-us'),
+]
