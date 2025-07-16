@@ -681,9 +681,19 @@ def logout_view(request):
 def get_profile(request):
     print('Inside get_profile function')
     try:
-        usr = user.objects.get(email=request.GET.get("email"))
+        email = request.GET.get("email")
+        if email:
+            usr = user.objects.get(email=email)
+        else:
+            # If no email param, use authenticated user if available
+            if request.user.is_authenticated:
+                usr = request.user
+            else:
+                return Response({"error": "No email provided and not authenticated."}, status=status.HTTP_400_BAD_REQUEST)
         serializer = UserSerializer(usr)
         user_data = serializer.data
+        # Ensure successful_referrals is always present at the top level
+        user_data['successful_referrals'] = getattr(usr, 'successful_referrals', 0)
         return Response(
             {
                 "message": "Profile fetched successfully",
