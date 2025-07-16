@@ -53,12 +53,11 @@ urlpatterns = [
 
     # Shared accounts endpoint
     path('shared-accounts/', views.get_shared_accounts, name='get_shared_accounts'),
+    
+    # Contact us endpoint
+    path('contact-us/', contact_us, name='contact-us'),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root = settings.STATIC_URL)
-
-urlpatterns += [
-    path('contact-us/', contact_us, name='contact-us'),
-]

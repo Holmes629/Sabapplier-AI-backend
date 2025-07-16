@@ -91,9 +91,37 @@ class ShareNotificationAdmin(admin.ModelAdmin):
 
 @admin.register(ContactUsRequest)
 class ContactUsRequestAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'subject', 'created_at')
+    list_display = ('name', 'email', 'subject', 'created_at', 'message_preview')
+    list_filter = ('created_at',)
     search_fields = ('name', 'email', 'subject', 'message')
-    readonly_fields = ('name', 'email', 'subject', 'message', 'created_at')
+    readonly_fields = ('created_at',)
+    list_per_page = 25
+    ordering = ('-created_at',)
+    
+    def message_preview(self, obj):
+        if obj.message:
+            return obj.message[:100] + '...' if len(obj.message) > 100 else obj.message
+        return "No message"
+    message_preview.short_description = 'Message Preview'
+    
+    fieldsets = (
+        ('Contact Information', {
+            'fields': ('name', 'email')
+        }),
+        ('Message Details', {
+            'fields': ('subject', 'message')
+        }),
+        ('Timestamp', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        return False  # Contact us requests should only come from the form
+    
+    def has_change_permission(self, request, obj=None):
+        return False  # Make them read-only in admin
 
 admin.site.register(user, usersAdmin)
 admin.site.register(Token)
