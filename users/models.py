@@ -176,80 +176,55 @@ class user(models.Model):
         ('Widowed', 'Widowed'),
         ('Others', 'Others'),
     ]
-    
-      # id = models.AutoField(primary_key=True)
-    email = models.EmailField(unique=True)
-    password = models.CharField(max_length=255)
-    fullName = models.CharField(max_length=255, null=True)
-    fathersName = models.CharField(max_length=255, null=True)
-    mothersName = models.CharField(max_length=255, null=True)
-    gender = models.CharField(max_length=10, choices=Gender_Choices, default='Select')
-    # New fields for autofill
+    Education_Choices = [
+        ('', 'Select'),
+        ('Matriculation (10th)', 'Matriculation (10th)'),
+        ('Higher Secondary (10+2)', 'Higher Secondary (10+2)'),
+        ('Diploma', 'Diploma'),
+        ('Graduation', 'Graduation'),
+        ('Post Graduation', 'Post Graduation'),
+        ('Ph.D', 'Ph.D'),
+    ]
+    # Required fields (no null/blank):
+    email = models.EmailField(unique=True, null=True, blank=True)
+    force_advanced_locked = models.BooleanField(default=False, help_text="Force advanced features to be locked for this user")
+    has_website_access = models.BooleanField(default=False, help_text="Enable access to the main application")
+    password = models.CharField(max_length=255, null=True, blank=True)
+    fullName = models.CharField(max_length=255, null=True, blank=True)
+    dateofbirth = models.DateField(null=True, blank=True)
+    correspondenceAddress = models.TextField(null=True, blank=True)
+    phone_number = models.CharField(max_length=10, null=True, blank=True)
+
+    # All other fields optional:
+    fathersName = models.CharField(max_length=255, null=True, blank=True)
+    mothersName = models.CharField(max_length=255, null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=Gender_Choices, default='Select', null=True, blank=True)
     hasChangedName = models.CharField(max_length=5, choices=[('Yes', 'Yes'), ('No', 'No')], null=True, blank=True)
     changedNameDetail = models.CharField(max_length=255, null=True, blank=True)
     motherTongue = models.CharField(max_length=255, null=True, blank=True)
-    # Referral system fields
     referral_code = models.CharField(max_length=32, unique=True, null=True, blank=True)
     referred_by = models.CharField(max_length=32, null=True, blank=True)
-    successful_referrals = models.IntegerField(default=0)
-    dateofbirth = models.DateField(null=True)
-    category = models.CharField(max_length=10, choices=Category_Choices, default='Select')
-    disability = models.BooleanField(default=False)
-    nationality = models.CharField(max_length=255, null=True)
-    domicileState = models.CharField(max_length=255, null=True)
-    district = models.CharField(max_length=255, null=True)
-    mandal = models.CharField(max_length=255, null=True)
-    pincode = models.CharField(max_length=6, null=True)
-    maritalStatus = models.CharField(max_length=255, choices=MaritalStatus_Choices, default='Select')
-    religion = models.CharField(max_length=255, null=True)
-    permanentAddress = models.TextField(null=True)
-    correspondenceAddress = models.TextField(null=True)
-    phone_number = models.CharField(max_length=10, null=True)
-    alt_phone_number = models.CharField(max_length=10, null=True)
-    google_profile_picture = models.URLField(null=True, blank=True)  # Store Google profile picture URL
-    document_urls = models.JSONField(default=dict, null=True)
-    document_texts = models.JSONField(default=dict, null=True)
+    successful_referrals = models.IntegerField(default=0, null=True, blank=True)
+    category = models.CharField(max_length=10, choices=Category_Choices, default='Select', null=True, blank=True)
+    disability = models.BooleanField(default=False, null=True, blank=True)
+    nationality = models.CharField(max_length=255, null=True, blank=True)
+    domicileState = models.CharField(max_length=255, null=True, blank=True)
+    district = models.CharField(max_length=255, null=True, blank=True)
+    mandal = models.CharField(max_length=255, null=True, blank=True)
+    pincode = models.CharField(max_length=6, null=True, blank=True)
+    maritalStatus = models.CharField(max_length=255, choices=MaritalStatus_Choices, default='Select', null=True, blank=True)
+    religion = models.CharField(max_length=255, null=True, blank=True)
+    permanentAddress = models.TextField(null=True, blank=True)
+    alt_phone_number = models.CharField(max_length=10, null=True, blank=True)
+    google_profile_picture = models.URLField(null=True, blank=True)
+    document_urls = models.JSONField(default=dict, null=True, blank=True)
+    document_texts = models.JSONField(default=dict, null=True, blank=True)
     extra_details = models.JSONField(default=list, null=True, blank=True)
     custom_doc_categories = models.JSONField(default=dict, null=True, blank=True)
+    highest_education = models.CharField(max_length=32, choices=Education_Choices, null=True, blank=True)
 
     def __str__(self):
         return self.email
-
-
-class WebsiteAccess(models.Model):
-    """
-    Model to control website access for users.
-    Admin can enable/disable access for each user through Django admin.
-    """
-    user = models.OneToOneField(user, on_delete=models.CASCADE, related_name='website_access')
-    is_enabled = models.BooleanField(default=False, help_text="Enable access to the main application")
-    enabled_date = models.DateTimeField(null=True, blank=True, help_text="Date when access was enabled")
-    disabled_date = models.DateTimeField(null=True, blank=True, help_text="Date when access was disabled")
-    notes = models.TextField(blank=True, help_text="Admin notes about this user's access")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name = "Website Access"
-        verbose_name_plural = "Website Access"
-        ordering = ['-created_at']
-
-    def __str__(self):
-        status = "Enabled" if self.is_enabled else "Disabled"
-        return f"{self.user.email} - {status}"
-
-    def save(self, *args, **kwargs):
-        # Auto-set enabled_date when access is granted
-        if self.is_enabled and not self.enabled_date:
-            from django.utils import timezone
-            self.enabled_date = timezone.now()
-        
-        # Auto-set disabled_date when access is revoked
-        if not self.is_enabled and self.enabled_date and not self.disabled_date:
-            from django.utils import timezone
-            self.disabled_date = timezone.now()
-            
-        super().save(*args, **kwargs)
 
 
 class ContactUsRequest(models.Model):

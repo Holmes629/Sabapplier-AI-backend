@@ -1924,34 +1924,15 @@ def check_access_status(request):
     try:
         usr = user.objects.get(email=email)
         
-        # Try to get WebsiteAccess object
-        try:
-            access_obj = usr.website_access
-            is_enabled = access_obj.is_enabled
-            enabled_date = access_obj.enabled_date.isoformat() if access_obj.enabled_date else None
-            print(f"Found WebsiteAccess for {email}: enabled={is_enabled}")
-        except user.website_access.RelatedObjectDoesNotExist:
-            # If WebsiteAccess doesn't exist, create it with disabled status
-            from .models import WebsiteAccess
-            access_obj = WebsiteAccess.objects.create(
-                user=usr,
-                is_enabled=False,
-                notes="Created during access check"
-            )
-            is_enabled = False
-            enabled_date = None
-            print(f"Created WebsiteAccess for {email}: enabled={is_enabled}")
-        except Exception as e:
-            print(f"Error accessing WebsiteAccess for {email}: {e}")
-            # Default to disabled if there's any error
-            is_enabled = False
-            enabled_date = None
+        # Use the new user model fields
+        is_enabled = usr.has_website_access
+        
+        print(f"Access check for {email}: enabled={is_enabled}")
         
         return Response(
             {
                 "success": True,
                 "is_enabled": is_enabled,
-                "enabled_date": enabled_date,
                 "user_email": usr.email,
                 "user_name": usr.fullName,
                 "message": "Access granted" if is_enabled else "User is on waitlist"

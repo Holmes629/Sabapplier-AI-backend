@@ -23,6 +23,8 @@ class UserSerializer(serializers.ModelSerializer):
     # Expose all document_urls as a dictionary
     all_documents = serializers.SerializerMethodField()
 
+    effective_successful_referrals = serializers.SerializerMethodField()
+
     class Meta:
         model = user
         fields = [
@@ -45,6 +47,11 @@ class UserSerializer(serializers.ModelSerializer):
             'all_documents',
             # New: custom doc category mapping
             'custom_doc_categories',
+            'highest_education',
+            # New field for feature gating
+            'effective_successful_referrals',
+            # Website access fields
+            'has_website_access',
         ]
 
     def _get_document_url(self, obj, field_name):
@@ -134,6 +141,14 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+    def get_effective_successful_referrals(self, obj):
+        if getattr(obj, 'force_advanced_locked', False):
+            return 0
+        total_users = user.objects.count()
+        if total_users < 100:
+            return 2
+        return obj.successful_referrals or 0
+
 class TokenSerializer(serializers.ModelSerializer):
     class Meta:
         model = Token
@@ -146,7 +161,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = user
-        fields = ('email', 'password', 'referred_by')
+        fields = ('email', 'password', 'referred_by', 'highest_education')
 
     def create(self, validated_data):
         if 'fullName' not in validated_data or validated_data.get('fullName') == 'undefined':
