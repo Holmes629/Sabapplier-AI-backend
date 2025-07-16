@@ -1851,23 +1851,48 @@ def get_shared_accounts(request):
         # Add each shared account
         for share in accepted_shares:
             try:
-                # Get the sender's user data
                 sender_user = user.objects.get(email=share.sender_email)
+                # Build shared_documents with URLs
+                shared_documents = []
+                doc_types = share.selected_documents if hasattr(share, 'selected_documents') else []
+                doc_urls = share.shared_data.get('documents', {}).get('document_urls', {}) if hasattr(share, 'shared_data') and share.shared_data else {}
+                for doc_type in doc_types:
+                    url = doc_urls.get(doc_type, None)
+                    if url and 'dropbox.com' in url:
+                        url = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('&dl=0', '&dl=1').replace('?dl=0', '?dl=1')
+                    shared_documents.append({
+                        "type": doc_type,
+                        "name": doc_type.replace('_file_url', '').replace('_', ' ').title(),
+                        "url": url
+                    })
                 accounts.append({
                     "email": share.sender_email,
                     "name": sender_user.fullName or share.sender_email.split('@')[0],
                     "type": "shared",
                     "shared_at": share.shared_at.isoformat() if share.shared_at else None,
-                    "share_id": str(share.id)
+                    "share_id": str(share.id),
+                    "shared_documents": shared_documents
                 })
             except user.DoesNotExist:
-                # If sender user doesn't exist, still include the share with email only
+                shared_documents = []
+                doc_types = share.selected_documents if hasattr(share, 'selected_documents') else []
+                doc_urls = share.shared_data.get('documents', {}).get('document_urls', {}) if hasattr(share, 'shared_data') and share.shared_data else {}
+                for doc_type in doc_types:
+                    url = doc_urls.get(doc_type, None)
+                    if url and 'dropbox.com' in url:
+                        url = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('&dl=0', '&dl=1').replace('?dl=0', '?dl=1')
+                    shared_documents.append({
+                        "type": doc_type,
+                        "name": doc_type.replace('_file_url', '').replace('_', ' ').title(),
+                        "url": url
+                    })
                 accounts.append({
                     "email": share.sender_email,
                     "name": share.sender_email.split('@')[0],
                     "type": "shared",
                     "shared_at": share.shared_at.isoformat() if share.shared_at else None,
-                    "share_id": str(share.id)
+                    "share_id": str(share.id),
+                    "shared_documents": shared_documents
                 })
         
         return Response({
