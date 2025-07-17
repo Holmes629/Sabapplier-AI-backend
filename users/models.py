@@ -1,5 +1,7 @@
 from django.db import models
 import os
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class Token(models.Model):
     id = models.AutoField(primary_key=True)
@@ -236,3 +238,78 @@ class ContactUsRequest(models.Model):
 
     def __str__(self):
         return f"{self.name} <{self.email}>: {self.subject} ({self.created_at})"
+
+class AccessController(models.Model):
+    email = models.ForeignKey('user', on_delete=models.CASCADE, related_name='access_controllers', null=True, blank=True)
+    description = models.TextField(blank=True, null=True)
+    force_advanced_locked = models.BooleanField(default=False)
+    has_website_access = models.BooleanField(default=False)
+    referral_code = models.CharField(max_length=32, null=True, blank=True)
+    referred_by = models.CharField(max_length=32, null=True, blank=True)
+    successful_referrals = models.IntegerField(default=0, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"AccessController for {self.email}" 
+
+    def save(self, *args, **kwargs):
+        # Sync to related user if email is set
+        if self.email:
+            user_changed = False
+            if self.email.force_advanced_locked != self.force_advanced_locked:
+                self.email.force_advanced_locked = self.force_advanced_locked
+                user_changed = True
+            if self.email.has_website_access != self.has_website_access:
+                self.email.has_website_access = self.has_website_access
+                user_changed = True
+            if self.email.referral_code != self.referral_code:
+                self.email.referral_code = self.referral_code
+                user_changed = True
+            if self.email.referred_by != self.referred_by:
+                self.email.referred_by = self.referred_by
+                user_changed = True
+            if self.email.successful_referrals != self.successful_referrals:
+                self.email.successful_referrals = self.successful_referrals
+                user_changed = True
+            if user_changed:
+                self.email.save()
+        super().save(*args, **kwargs)
+
+@receiver(post_save, sender=user)
+def sync_user_to_accesscontroller(sender, instance, **kwargs):
+    # Update all related AccessController objects to match the user fields
+    for ac in instance.access_controllers.all():
+        changed = False
+        if ac.force_advanced_locked != instance.force_advanced_locked:
+            ac.force_advanced_locked = instance.force_advanced_locked
+            changed = True
+        if ac.has_website_access != instance.has_website_access:
+            ac.has_website_access = instance.has_website_access
+            changed = True
+        if ac.referral_code != instance.referral_code:
+            ac.referral_code = instance.referral_code
+            changed = True
+        if ac.referred_by != instance.referred_by:
+            ac.referred_by = instance.referred_by
+            changed = True
+        if ac.successful_referrals != instance.successful_referrals:
+            ac.successful_referrals = instance.successful_referrals
+            changed = True
+        if changed:
+            ac.save()
+
+@receiver(post_save, sender=user)
+def create_accesscontroller_for_user(sender, instance, created, **kwargs):
+    if created:
+        # Only create if not already present
+        if not hasattr(instance, 'access_controllers') or instance.access_controllers.count() == 0:
+            AccessController.objects.create(
+                email=instance,
+                name=f"Access for {instance.email}",
+                force_advanced_locked=instance.force_advanced_locked,
+                has_website_access=instance.has_website_access,
+                referral_code=instance.referral_code,
+                referred_by=instance.referred_by,
+                successful_referrals=instance.successful_referrals,
+            )
