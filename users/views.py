@@ -318,13 +318,19 @@ def google_signup(request):
                     referred_by=referred_by,
                 )
 
+                # Count total users and enable access for first 500 only
+                user_count = user.objects.count()
+                is_enabled = user_count <= 500
+                usr.has_website_access = is_enabled
+                usr.save(update_fields=["has_website_access"])
+
                 # Create WebsiteAccess entry for Google signup user
                 try:
                     from .models import WebsiteAccess
                     website_access, created = WebsiteAccess.objects.get_or_create(
                         user=usr,
                         defaults={
-                            'is_enabled': False,  # Default disabled - admin needs to enable
+                            'is_enabled': is_enabled,  # Default disabled - admin needs to enable
                             'notes': "User registered via Google OAuth and added to waitlist"
                         }
                     )
@@ -396,13 +402,19 @@ def register(request):
     if serializer.is_valid():
         user_instance = serializer.save()
         
+        # Count total users and enable access for first 500 only
+        user_count = user.objects.count()
+        is_enabled = user_count <= 500
+        user_instance.has_website_access = is_enabled
+        user_instance.save(update_fields=["has_website_access"])
+
         try:
             # Create WebsiteAccess entry for the new user (disabled by default)
             from .models import WebsiteAccess
             website_access, created = WebsiteAccess.objects.get_or_create(
                 user=user_instance,
                 defaults={
-                    'is_enabled': False,  # Default disabled - admin needs to enable
+                    'is_enabled': is_enabled,  # Default disabled - admin needs to enable
                     'notes': "User registered and added to waitlist"
                 }
             )
