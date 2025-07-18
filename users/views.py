@@ -8,6 +8,7 @@ from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from django.core.cache import cache
 from django.conf import settings
+from django.http import JsonResponse
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
@@ -24,7 +25,7 @@ from .serializers import (
     DataShareSerializer,
     ShareNotificationSerializer,
 )
-from .models import user, Token, DataShare, ShareNotification
+from .models import user, Token, DataShare, ShareNotification, ContactUsRequest
 from .apis.ocr_endpoint import get_ocr_data
 from .apis.fetch_autofill_data import get_autofill_data
 from .apis.learning_api import process_learned_data_for_display, process_with_gemini
@@ -302,17 +303,46 @@ def google_signup(request):
 
             except user.DoesNotExist:
                 # Create new user with Google data
-                new_user = user.objects.create(
+                import uuid
+                referral_code = str(uuid.uuid4())[:8]
+                # Ensure uniqueness
+                while user.objects.filter(referral_code=referral_code).exists():
+                    referral_code = str(uuid.uuid4())[:8]
+                referred_by = request.data.get('referred_by')
+                usr = user.objects.create(
                     email=email,
                     fullName=name,
                     google_profile_picture=picture,  # Store Google profile picture
                     password="",  # Placeholder password for Google users
+                    referral_code=referral_code,
+                    referred_by=referred_by,
                 )
+
+                # Create WebsiteAccess entry for Google signup user
+                try:
+                    from .models import WebsiteAccess
+                    website_access, created = WebsiteAccess.objects.get_or_create(
+                        user=usr,
+                        defaults={
+                            'is_enabled': False,  # Default disabled - admin needs to enable
+                            'notes': "User registered via Google OAuth and added to waitlist"
+                        }
+                    )
+                    print(f"WebsiteAccess {'created' if created else 'already exists'} for Google user {usr.email}")
+                except Exception as e:
+                    print(f"Error creating WebsiteAccess for Google user {usr.email}: {e}")
+
+                # If referred_by is valid, increment inviter's successful_referrals
+                if referred_by:
+                    inviter = user.objects.filter(referral_code=referred_by).first()
+                    if inviter:
+                        inviter.successful_referrals += 1
+                        inviter.save()
 
                 return Response(
                     {
                         "success": True,
-                        "user": UserSerializer(new_user).data,
+                        "user": UserSerializer(usr).data,
                         "email": email,
                         "needsProfileCompletion": True,
                         "message": "Account created successfully. Please complete your profile.",
@@ -366,13 +396,20 @@ def register(request):
     if serializer.is_valid():
         user_instance = serializer.save()
         
-        # Create WebsiteAccess entry for the new user (disabled by default)
-        from .models import WebsiteAccess
-        WebsiteAccess.objects.create(
-            user=user_instance,
-            is_enabled=False,  # Default disabled - admin needs to enable
-            notes="User registered and added to waitlist"
-        )
+        try:
+            # Create WebsiteAccess entry for the new user (disabled by default)
+            from .models import WebsiteAccess
+            website_access, created = WebsiteAccess.objects.get_or_create(
+                user=user_instance,
+                defaults={
+                    'is_enabled': False,  # Default disabled - admin needs to enable
+                    'notes': "User registered and added to waitlist"
+                }
+            )
+            print(f"WebsiteAccess {'created' if created else 'already exists'} for {user_instance.email}")
+        except Exception as e:
+            print(f"Error creating WebsiteAccess for {user_instance.email}: {e}")
+            # Continue anyway - we can create it later via management command
         
         return Response(
             {
@@ -454,6 +491,15 @@ def update_data(request):
             if field_name in userData:
                 userData.pop(field_name)
 
+        # Set referred_by and credit inviter if provided and not already set
+        referred_by = userData.get('referred_by')
+        if referred_by and not usr.referred_by:
+            usr.referred_by = referred_by
+            inviter = user.objects.filter(referral_code=referred_by).first()
+            if inviter:
+                inviter.successful_referrals += 1
+                inviter.save()
+
         # Save user instance with updated documents
         usr.save()
         serializer = UserSerializer(usr, data=userData, partial=True)
@@ -518,6 +564,62 @@ def delete_data(request):
 @permission_classes([AllowAny])
 def login_view(request):
     print('Inside login_view function')
+    is_google_login = request.data.get("isGoogleLogin", False)
+    if is_google_login:
+        credential = request.data.get("credential")
+        if not credential:
+            return Response({"success": False, "message": "Google credential is required."}, status=400)
+        try:
+            from google.oauth2 import id_token
+            from google.auth.transport import requests
+            import uuid
+            GOOGLE_CLIENT_ID = getattr(settings, "GOOGLE_CLIENT_ID", None)
+            idinfo = id_token.verify_oauth2_token(credential, requests.Request(), GOOGLE_CLIENT_ID)
+            email = idinfo.get("email")
+            name = idinfo.get("name", "")
+            picture = idinfo.get("picture", "")
+            if not email:
+                return Response({"success": False, "message": "Unable to get email from Google account."}, status=400)
+            try:
+                usr = user.objects.get(email=email)
+                # Update Google profile picture if available
+                updated = False
+                if picture and not usr.google_profile_picture:
+                    usr.google_profile_picture = picture
+                    updated = True
+                if not usr.fullName and name:
+                    usr.fullName = name
+                    updated = True
+                if updated:
+                    usr.save()
+            except user.DoesNotExist:
+                # Create new user with Google info and referral code
+                referral_code = str(uuid.uuid4())[:8]
+                while user.objects.filter(referral_code=referral_code).exists():
+                    referral_code = str(uuid.uuid4())[:8]
+                usr = user.objects.create(
+                    email=email,
+                    fullName=name,
+                    google_profile_picture=picture,
+                    password="",
+                    referral_code=referral_code,
+                )
+            # Check if profile is complete
+            profile_complete = all([
+                usr.fullName,
+                usr.dateofbirth,
+                usr.correspondenceAddress,
+                usr.phone_number,
+            ])
+            return Response({
+                "success": True,
+                "message": "You are now logged in!",
+                "user": UserSerializer(usr).data,
+                "needsProfileCompletion": not profile_complete,
+                "email": usr.email
+            }, status=200)
+        except Exception as e:
+            return Response({"success": False, "message": f"Google login failed: {str(e)}"}, status=400)
     email = request.data.get("email")
     password = request.data.get("password")
     try:
@@ -531,8 +633,25 @@ def login_view(request):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
         else:
+            # Check if profile is complete
+            profile_complete = all(
+                [
+                    usr.fullName,
+                    usr.dateofbirth,
+                    usr.correspondenceAddress,
+                    usr.phone_number,
+                ]
+            )
+            
+            # Return user data for frontend authentication state
             return Response(
-                {"success": True, "message": "You are now logged in!"},
+                {
+                    "success": True, 
+                    "message": "You are now logged in!",
+                    "user": UserSerializer(usr).data,
+                    "needsProfileCompletion": not profile_complete,
+                    "email": usr.email
+                },
                 status=status.HTTP_200_OK,
             )
     except user.DoesNotExist:
@@ -562,9 +681,19 @@ def logout_view(request):
 def get_profile(request):
     print('Inside get_profile function')
     try:
-        usr = user.objects.get(email=request.GET.get("email"))
+        email = request.GET.get("email")
+        if email:
+            usr = user.objects.get(email=email)
+        else:
+            # If no email param, use authenticated user if available
+            if request.user.is_authenticated:
+                usr = request.user
+            else:
+                return Response({"error": "No email provided and not authenticated."}, status=status.HTTP_400_BAD_REQUEST)
         serializer = UserSerializer(usr)
         user_data = serializer.data
+        # Ensure successful_referrals is always present at the top level
+        user_data['successful_referrals'] = getattr(usr, 'successful_referrals', 0)
         return Response(
             {
                 "message": "Profile fetched successfully",
@@ -1230,6 +1359,7 @@ def share_data_with_friend(request):
         sender_email = request.data.get("sender_email", "").strip().lower()
         receiver_email = request.data.get("receiver_email", "").strip().lower()
         selected_documents = request.data.get("selected_documents", [])
+        sharing_type = request.data.get("sharing_type", "documents_only")
         
         if not sender_email or not receiver_email:
             return Response(
@@ -1292,7 +1422,7 @@ def share_data_with_friend(request):
                 existing_share.stopped_at = None
                 existing_share.selected_documents = selected_documents
                 # Save updated shared data snapshot
-                existing_share.save_shared_data(sender_user)
+                existing_share.save_shared_data(sender_user, sharing_type)
                 data_share = existing_share
         else:
             # Create new sharing request
@@ -1304,7 +1434,7 @@ def share_data_with_friend(request):
                 selected_documents=selected_documents
             )
             # Save shared data snapshot
-            data_share.save_shared_data(sender_user)
+            data_share.save_shared_data(sender_user, sharing_type)
         
         # Create notification for receiver
         ShareNotification.objects.create(
@@ -1721,23 +1851,48 @@ def get_shared_accounts(request):
         # Add each shared account
         for share in accepted_shares:
             try:
-                # Get the sender's user data
                 sender_user = user.objects.get(email=share.sender_email)
+                # Build shared_documents with URLs
+                shared_documents = []
+                doc_types = share.selected_documents if hasattr(share, 'selected_documents') else []
+                doc_urls = share.shared_data.get('documents', {}).get('document_urls', {}) if hasattr(share, 'shared_data') and share.shared_data else {}
+                for doc_type in doc_types:
+                    url = doc_urls.get(doc_type, None)
+                    if url and 'dropbox.com' in url:
+                        url = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('&dl=0', '&dl=1').replace('?dl=0', '?dl=1')
+                    shared_documents.append({
+                        "type": doc_type,
+                        "name": doc_type.replace('_file_url', '').replace('_', ' ').title(),
+                        "url": url
+                    })
                 accounts.append({
                     "email": share.sender_email,
                     "name": sender_user.fullName or share.sender_email.split('@')[0],
                     "type": "shared",
                     "shared_at": share.shared_at.isoformat() if share.shared_at else None,
-                    "share_id": str(share.id)
+                    "share_id": str(share.id),
+                    "shared_documents": shared_documents
                 })
             except user.DoesNotExist:
-                # If sender user doesn't exist, still include the share with email only
+                shared_documents = []
+                doc_types = share.selected_documents if hasattr(share, 'selected_documents') else []
+                doc_urls = share.shared_data.get('documents', {}).get('document_urls', {}) if hasattr(share, 'shared_data') and share.shared_data else {}
+                for doc_type in doc_types:
+                    url = doc_urls.get(doc_type, None)
+                    if url and 'dropbox.com' in url:
+                        url = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('&dl=0', '&dl=1').replace('?dl=0', '?dl=1')
+                    shared_documents.append({
+                        "type": doc_type,
+                        "name": doc_type.replace('_file_url', '').replace('_', ' ').title(),
+                        "url": url
+                    })
                 accounts.append({
                     "email": share.sender_email,
                     "name": share.sender_email.split('@')[0],
                     "type": "shared",
                     "shared_at": share.shared_at.isoformat() if share.shared_at else None,
-                    "share_id": str(share.id)
+                    "share_id": str(share.id),
+                    "shared_documents": shared_documents
                 })
         
         return Response({
@@ -1752,14 +1907,14 @@ def get_shared_accounts(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-@api_view(["GET"])
+@api_view(["POST"])
 @permission_classes([AllowAny])
 def check_access_status(request):
     """
     Check if a user has access to the main application.
     Returns access status and user information.
     """
-    email = request.GET.get("email")
+    email = request.data.get("email")
     if not email:
         return Response(
             {"success": False, "message": "Email parameter is required"},
@@ -1769,27 +1924,15 @@ def check_access_status(request):
     try:
         usr = user.objects.get(email=email)
         
-        # Try to get WebsiteAccess object
-        try:
-            access_obj = usr.website_access
-            is_enabled = access_obj.is_enabled
-            enabled_date = access_obj.enabled_date
-        except:
-            # If WebsiteAccess doesn't exist, create it with disabled status
-            from .models import WebsiteAccess
-            access_obj = WebsiteAccess.objects.create(
-                user=usr,
-                is_enabled=False,
-                notes="Created during access check"
-            )
-            is_enabled = False
-            enabled_date = None
+        # Use the new user model fields
+        is_enabled = usr.has_website_access
+        
+        print(f"Access check for {email}: enabled={is_enabled}")
         
         return Response(
             {
                 "success": True,
-                "access_enabled": is_enabled,
-                "enabled_date": enabled_date,
+                "is_enabled": is_enabled,
                 "user_email": usr.email,
                 "user_name": usr.fullName,
                 "message": "Access granted" if is_enabled else "User is on waitlist"
@@ -1802,3 +1945,59 @@ def check_access_status(request):
             {"success": False, "message": "User does not exist"},
             status=status.HTTP_404_NOT_FOUND,
         )
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def mark_notification_as_read(request):
+    """
+    Mark a notification as read by its ID
+    """
+    try:
+        notification_id = request.data.get("notification_id")
+        if not notification_id:
+            return Response({"error": "Notification ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+        from .models import ShareNotification
+        try:
+            notification = ShareNotification.objects.get(id=notification_id)
+            print(f"[DEBUG] Before: Notification ID {notification.id}, is_read={notification.is_read}")
+            notification.is_read = True
+            notification.save()
+            print(f"[DEBUG] After: Notification ID {notification.id}, is_read={notification.is_read}")
+            return Response({"message": "Notification marked as read"}, status=status.HTTP_200_OK)
+        except ShareNotification.DoesNotExist:
+            print(f"[DEBUG] Notification ID {notification_id} not found.")
+            return Response({"error": "Notification not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"Mark notification as read error: {e}")
+        return Response({"error": "Failed to mark notification as read"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def contact_us(request):
+    print("Contact Us endpoint HIT")
+    name = request.data.get("name", "").strip()
+    email = request.data.get("email", "").strip()
+    subject = request.data.get("subject", "").strip()
+    message = request.data.get("message", "").strip()
+
+    if not all([name, email, subject, message]):
+        return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        # Save to DB
+        ContactUsRequest.objects.create(
+            name=name,
+            email=email,
+            subject=subject,
+            message=message
+        )
+        send_mail(
+            subject=f"[ContactUs] {subject}",
+            message=f"From: {name} <{email}>\n\n{message}",
+            from_email="noreply@sabapplier.com",
+            recipient_list=["sabapplierai100m@gmail.com"],
+            fail_silently=False,
+        )
+        return Response({"success": "Message sent successfully."}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

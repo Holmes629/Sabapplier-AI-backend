@@ -1,5 +1,7 @@
 from django.db import models
 import os
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class Token(models.Model):
     id = models.AutoField(primary_key=True)
@@ -37,67 +39,67 @@ class DataShare(models.Model):
     def __str__(self):
         return f"{self.sender_email} -> {self.receiver_email} ({self.status})"
     
-    def save_shared_data(self, user_instance):
-        """Save a snapshot of user's autofill and OCR data for selected documents only"""
-        
-        # Filter document URLs and texts to only include selected documents
+    def save_shared_data(self, user_instance, sharing_type="documents_only"):
+        """Save a snapshot of user's data for sharing, based on sharing_type."""
         selected_document_urls = {}
         selected_document_texts = {}
-        
-        # Only include documents if user has selected specific documents
         if self.selected_documents and len(self.selected_documents) > 0 and user_instance.document_urls:
             for doc_type in self.selected_documents:
-                # Include document URL if it exists
                 if doc_type in user_instance.document_urls and user_instance.document_urls[doc_type]:
                     selected_document_urls[doc_type] = user_instance.document_urls[doc_type]
-                
-                # Include OCR text if it exists
                 if user_instance.document_texts and doc_type in user_instance.document_texts:
                     selected_document_texts[doc_type] = user_instance.document_texts[doc_type]
-        
-        # Sharing metadata with more details
-        sharing_type = "selective" if self.selected_documents and len(self.selected_documents) > 0 else "profile_only"
-        
-        self.shared_data = {
-            'personal_info': {
-                'fullName': user_instance.fullName,
-                'fathersName': user_instance.fathersName,
-                'mothersName': user_instance.mothersName,
-                'gender': user_instance.gender,
-                'dateofbirth': user_instance.dateofbirth.isoformat() if user_instance.dateofbirth else None,
-                'category': user_instance.category,
-                'disability': user_instance.disability,
-                'nationality': user_instance.nationality,
-                'domicileState': user_instance.domicileState,
-                'district': user_instance.district,
-                'mandal': user_instance.mandal,
-                'pincode': user_instance.pincode,
-                'maritalStatus': user_instance.maritalStatus,
-                'religion': user_instance.religion,
-                'phone_number': user_instance.phone_number,
-                'alt_phone_number': user_instance.alt_phone_number,
-            },
-            'addresses': {
-                'permanentAddress': user_instance.permanentAddress,
-                'correspondenceAddress': user_instance.correspondenceAddress,
-            },
-            'documents': {
-                'document_urls': selected_document_urls,  # Only selected documents (empty if none selected)
-                'document_texts': selected_document_texts,  # Only OCR data for selected documents (empty if none selected)
-            },
-            'profile': {
-                'google_profile_picture': user_instance.google_profile_picture,
-            },
-            'sharing_metadata': {
-                'sharing_type': sharing_type,  # "selective" or "profile_only"
-                'selected_documents': self.selected_documents,  # Which documents user chose to share
-                'total_selected_documents': len(self.selected_documents) if self.selected_documents else 0,
-                'total_available_documents': len([k for k, v in (user_instance.document_urls or {}).items() if v]),
-                'shared_documents_count': len(selected_document_urls),
-                'includes_documents': len(selected_document_urls) > 0,
-            },
-            'timestamp': self.shared_at.isoformat() if self.shared_at else None,
+        sharing_metadata = {
+            'sharing_type': sharing_type,
+            'selected_documents': self.selected_documents,
+            'total_selected_documents': len(self.selected_documents) if self.selected_documents else 0,
+            'total_available_documents': len([k for k, v in (user_instance.document_urls or {}).items() if v]),
+            'shared_documents_count': len(selected_document_urls),
+            'includes_documents': len(selected_document_urls) > 0,
         }
+        if sharing_type == "documents_only":
+            self.shared_data = {
+                'documents': {
+                    'document_urls': selected_document_urls,
+                    'document_texts': selected_document_texts,
+                },
+                'sharing_metadata': sharing_metadata,
+                'timestamp': self.shared_at.isoformat() if self.shared_at else None,
+            }
+        else:
+            self.shared_data = {
+                'personal_info': {
+                    'fullName': user_instance.fullName,
+                    'fathersName': user_instance.fathersName,
+                    'mothersName': user_instance.mothersName,
+                    'gender': user_instance.gender,
+                    'dateofbirth': user_instance.dateofbirth.isoformat() if user_instance.dateofbirth else None,
+                    'category': user_instance.category,
+                    'disability': user_instance.disability,
+                    'nationality': user_instance.nationality,
+                    'domicileState': user_instance.domicileState,
+                    'district': user_instance.district,
+                    'mandal': user_instance.mandal,
+                    'pincode': user_instance.pincode,
+                    'maritalStatus': user_instance.maritalStatus,
+                    'religion': user_instance.religion,
+                    'phone_number': user_instance.phone_number,
+                    'alt_phone_number': user_instance.alt_phone_number,
+                },
+                'addresses': {
+                    'permanentAddress': user_instance.permanentAddress,
+                    'correspondenceAddress': user_instance.correspondenceAddress,
+                },
+                'documents': {
+                    'document_urls': selected_document_urls,
+                    'document_texts': selected_document_texts,
+                },
+                'profile': {
+                    'google_profile_picture': user_instance.google_profile_picture,
+                },
+                'sharing_metadata': sharing_metadata,
+                'timestamp': self.shared_at.isoformat() if self.shared_at else None,
+            }
         self.save()
 
 class ShareNotification(models.Model):
@@ -176,68 +178,138 @@ class user(models.Model):
         ('Widowed', 'Widowed'),
         ('Others', 'Others'),
     ]
-    
-      # id = models.AutoField(primary_key=True)
-    email = models.EmailField(unique=True)
-    password = models.CharField(max_length=255)
-    fullName = models.CharField(max_length=255, null=True)
-    fathersName = models.CharField(max_length=255, null=True)
-    mothersName = models.CharField(max_length=255, null=True)
-    gender = models.CharField(max_length=10, choices=Gender_Choices, default='Select')
-    dateofbirth = models.DateField(null=True)
-    category = models.CharField(max_length=10, choices=Category_Choices, default='Select')
-    disability = models.BooleanField(default=False)
-    nationality = models.CharField(max_length=255, null=True)
-    domicileState = models.CharField(max_length=255, null=True)
-    district = models.CharField(max_length=255, null=True)
-    mandal = models.CharField(max_length=255, null=True)
-    pincode = models.CharField(max_length=6, null=True)
-    maritalStatus = models.CharField(max_length=255, choices=MaritalStatus_Choices, default='Select')
-    religion = models.CharField(max_length=255, null=True)
-    permanentAddress = models.TextField(null=True)
-    correspondenceAddress = models.TextField(null=True)
-    phone_number = models.CharField(max_length=10, null=True)
-    alt_phone_number = models.CharField(max_length=10, null=True)
-    google_profile_picture = models.URLField(null=True, blank=True)  # Store Google profile picture URL
-    document_urls = models.JSONField(default=dict, null=True)
-    document_texts = models.JSONField(default=dict, null=True)
+    Education_Choices = [
+        ('', 'Select'),
+        ('Matriculation (10th)', 'Matriculation (10th)'),
+        ('Higher Secondary (10+2)', 'Higher Secondary (10+2)'),
+        ('Diploma', 'Diploma'),
+        ('Graduation', 'Graduation'),
+        ('Post Graduation', 'Post Graduation'),
+        ('Ph.D', 'Ph.D'),
+    ]
+    # Required fields (no null/blank):
+    email = models.EmailField(unique=True, null=True, blank=True)
+    force_advanced_locked = models.BooleanField(default=False, help_text="Force advanced features to be locked for this user")
+    has_website_access = models.BooleanField(default=False, help_text="Enable access to the main application")
+    password = models.CharField(max_length=255, null=True, blank=True)
+    fullName = models.CharField(max_length=255, null=True, blank=True)
+    dateofbirth = models.DateField(null=True, blank=True)
+    correspondenceAddress = models.TextField(null=True, blank=True)
+    phone_number = models.CharField(max_length=10, null=True, blank=True)
+
+    # All other fields optional:
+    fathersName = models.CharField(max_length=255, null=True, blank=True)
+    mothersName = models.CharField(max_length=255, null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=Gender_Choices, default='Select', null=True, blank=True)
+    hasChangedName = models.CharField(max_length=5, choices=[('Yes', 'Yes'), ('No', 'No')], null=True, blank=True)
+    changedNameDetail = models.CharField(max_length=255, null=True, blank=True)
+    motherTongue = models.CharField(max_length=255, null=True, blank=True)
+    referral_code = models.CharField(max_length=32, unique=True, null=True, blank=True)
+    referred_by = models.CharField(max_length=32, null=True, blank=True)
+    successful_referrals = models.IntegerField(default=0, null=True, blank=True)
+    category = models.CharField(max_length=10, choices=Category_Choices, default='Select', null=True, blank=True)
+    disability = models.BooleanField(default=False, null=True, blank=True)
+    nationality = models.CharField(max_length=255, null=True, blank=True)
+    domicileState = models.CharField(max_length=255, null=True, blank=True)
+    district = models.CharField(max_length=255, null=True, blank=True)
+    mandal = models.CharField(max_length=255, null=True, blank=True)
+    pincode = models.CharField(max_length=6, null=True, blank=True)
+    maritalStatus = models.CharField(max_length=255, choices=MaritalStatus_Choices, default='Select', null=True, blank=True)
+    religion = models.CharField(max_length=255, null=True, blank=True)
+    permanentAddress = models.TextField(null=True, blank=True)
+    alt_phone_number = models.CharField(max_length=10, null=True, blank=True)
+    google_profile_picture = models.URLField(null=True, blank=True)
+    document_urls = models.JSONField(default=dict, null=True, blank=True)
+    document_texts = models.JSONField(default=dict, null=True, blank=True)
     extra_details = models.JSONField(default=list, null=True, blank=True)
+    custom_doc_categories = models.JSONField(default=dict, null=True, blank=True)
+    highest_education = models.CharField(max_length=32, choices=Education_Choices, null=True, blank=True)
 
     def __str__(self):
         return self.email
 
 
-class WebsiteAccess(models.Model):
-    """
-    Model to control website access for users.
-    Admin can enable/disable access for each user through Django admin.
-    """
-    user = models.OneToOneField(user, on_delete=models.CASCADE, related_name='website_access')
-    is_enabled = models.BooleanField(default=False, help_text="Enable access to the main application")
-    enabled_date = models.DateTimeField(null=True, blank=True, help_text="Date when access was enabled")
-    disabled_date = models.DateTimeField(null=True, blank=True, help_text="Date when access was disabled")
-    notes = models.TextField(blank=True, help_text="Admin notes about this user's access")
+class ContactUsRequest(models.Model):
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    subject = models.CharField(max_length=255)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} <{self.email}>: {self.subject} ({self.created_at})"
+
+class AccessController(models.Model):
+    email = models.ForeignKey('user', on_delete=models.CASCADE, related_name='access_controllers', null=True, blank=True)
+    description = models.TextField(blank=True, null=True)
+    force_advanced_locked = models.BooleanField(default=False)
+    has_website_access = models.BooleanField(default=False)
+    referral_code = models.CharField(max_length=32, null=True, blank=True)
+    referred_by = models.CharField(max_length=32, null=True, blank=True)
+    successful_referrals = models.IntegerField(default=0, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        verbose_name = "Website Access"
-        verbose_name_plural = "Website Access"
-        ordering = ['-created_at']
-
     def __str__(self):
-        status = "Enabled" if self.is_enabled else "Disabled"
-        return f"{self.user.email} - {status}"
+        return f"AccessController for {self.email}" 
 
     def save(self, *args, **kwargs):
-        # Auto-set enabled_date when access is granted
-        if self.is_enabled and not self.enabled_date:
-            from django.utils import timezone
-            self.enabled_date = timezone.now()
-        
-        # Auto-set disabled_date when access is revoked
-        if not self.is_enabled and self.enabled_date and not self.disabled_date:
-            from django.utils import timezone
-            self.disabled_date = timezone.now()
-            
+        # Sync to related user if email is set
+        if self.email:
+            user_changed = False
+            if self.email.force_advanced_locked != self.force_advanced_locked:
+                self.email.force_advanced_locked = self.force_advanced_locked
+                user_changed = True
+            if self.email.has_website_access != self.has_website_access:
+                self.email.has_website_access = self.has_website_access
+                user_changed = True
+            if self.email.referral_code != self.referral_code:
+                self.email.referral_code = self.referral_code
+                user_changed = True
+            if self.email.referred_by != self.referred_by:
+                self.email.referred_by = self.referred_by
+                user_changed = True
+            if self.email.successful_referrals != self.successful_referrals:
+                self.email.successful_referrals = self.successful_referrals
+                user_changed = True
+            if user_changed:
+                self.email.save()
         super().save(*args, **kwargs)
+
+@receiver(post_save, sender=user)
+def sync_user_to_accesscontroller(sender, instance, **kwargs):
+    # Update all related AccessController objects to match the user fields
+    for ac in instance.access_controllers.all():
+        changed = False
+        if ac.force_advanced_locked != instance.force_advanced_locked:
+            ac.force_advanced_locked = instance.force_advanced_locked
+            changed = True
+        if ac.has_website_access != instance.has_website_access:
+            ac.has_website_access = instance.has_website_access
+            changed = True
+        if ac.referral_code != instance.referral_code:
+            ac.referral_code = instance.referral_code
+            changed = True
+        if ac.referred_by != instance.referred_by:
+            ac.referred_by = instance.referred_by
+            changed = True
+        if ac.successful_referrals != instance.successful_referrals:
+            ac.successful_referrals = instance.successful_referrals
+            changed = True
+        if changed:
+            ac.save()
+
+@receiver(post_save, sender=user)
+def create_accesscontroller_for_user(sender, instance, created, **kwargs):
+    if created:
+        # Only create if not already present
+        if not hasattr(instance, 'access_controllers') or instance.access_controllers.count() == 0:
+            AccessController.objects.create(
+                email=instance,
+                name=f"Access for {instance.email}",
+                force_advanced_locked=instance.force_advanced_locked,
+                has_website_access=instance.has_website_access,
+                referral_code=instance.referral_code,
+                referred_by=instance.referred_by,
+                successful_referrals=instance.successful_referrals,
+            )

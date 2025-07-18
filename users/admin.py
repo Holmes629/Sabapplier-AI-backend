@@ -2,13 +2,36 @@ from django.contrib import admin
 from django.utils.html import format_html
 import json
 
-from .models import user, Token, DataShare, ShareNotification, WebsiteAccess
+from .models import user, Token, DataShare, ShareNotification, ContactUsRequest, AccessController
 
 class usersAdmin(admin.ModelAdmin):
-    list_display=('email', 'password', 'fullName', 'fathersName', 'mothersName', 'gender', 'dateofbirth', 'category', 'disability', 'nationality', 'domicileState', 'maritalStatus', 'religion', 'permanentAddress', 'correspondenceAddress', 'phone_number', 'alt_phone_number', 'document_urls', 'document_texts')
-    search_fields=('email', 'password', 'fullName', 'fathersName', 'mothersName', 'gender', 'dateofbirth', 'category', 'disability', 'nationality', 'domicileState', 'maritalStatus', 'religion', 'permanentAddress', 'correspondenceAddress', 'phone_number', 'alt_phone_number', 'document_urls', 'document_texts')
-    list_filter=('email', 'password', 'fullName', 'fathersName', 'mothersName', 'gender', 'dateofbirth', 'category', 'disability', 'nationality', 'domicileState', 'maritalStatus', 'religion', 'permanentAddress', 'correspondenceAddress', 'phone_number', 'alt_phone_number', 'document_urls', 'document_texts')
-    list_per_page=10
+    # Exclude the sync fields from forms, detail, and list display
+    exclude = ('force_advanced_locked', 'has_website_access', 'referral_code', 'referred_by', 'successful_referrals')
+    readonly_fields = ('force_advanced_locked', 'has_website_access', 'referral_code', 'referred_by', 'successful_referrals')
+    list_display = (
+        'email', 'password', 'fullName', 'fathersName', 'mothersName', 'gender', 'dateofbirth', 'category',
+        'disability', 'nationality', 'domicileState', 'maritalStatus', 'religion', 'permanentAddress',
+        'correspondenceAddress', 'phone_number', 'alt_phone_number', 'google_profile_picture'
+    )
+    list_editable = ()
+    search_fields = ('email', 'password', 'fullName', 'fathersName', 'mothersName', 'gender', 'dateofbirth', 'category', 'disability', 'nationality', 'domicileState', 'maritalStatus', 'religion', 'permanentAddress', 'correspondenceAddress', 'phone_number', 'alt_phone_number', 'document_urls', 'document_texts')
+    list_filter = ('email', 'password', 'fullName', 'fathersName', 'mothersName', 'gender', 'dateofbirth', 'category', 'disability', 'nationality', 'domicileState', 'maritalStatus', 'religion', 'permanentAddress', 'correspondenceAddress', 'phone_number', 'alt_phone_number', 'document_urls', 'document_texts')
+    list_per_page = 10
+
+    def get_fields(self, request, obj=None):
+        # Remove the sync fields from the form fields
+        fields = super().get_fields(request, obj)
+        return [f for f in fields if f not in self.exclude]
+
+    def get_fieldsets(self, request, obj=None):
+        # Remove the sync fields from the fieldsets
+        fieldsets = super().get_fieldsets(request, obj)
+        new_fieldsets = []
+        for name, opts in fieldsets:
+            if 'fields' in opts:
+                opts['fields'] = [f for f in opts['fields'] if f not in self.exclude]
+            new_fieldsets.append((name, opts))
+        return new_fieldsets
 
 class DataShareAdmin(admin.ModelAdmin):
     list_display = ('sender_email', 'receiver_email', 'status', 'is_active', 'shared_at', 'responded_at', 'has_shared_data', 'selected_documents_count')
@@ -83,57 +106,51 @@ class ShareNotificationAdmin(admin.ModelAdmin):
         }),
     )
 
-class WebsiteAccessAdmin(admin.ModelAdmin):
-    list_display = ('user_email', 'user_full_name', 'is_enabled', 'enabled_date', 'disabled_date', 'created_at')
-    list_filter = ('is_enabled', 'enabled_date', 'created_at')
-    search_fields = ('user__email', 'user__fullName', 'notes')
-    readonly_fields = ('created_at', 'updated_at')
+@admin.register(ContactUsRequest)
+class ContactUsRequestAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'subject', 'created_at', 'message_preview')
+    list_filter = ('created_at',)
+    search_fields = ('name', 'email', 'subject', 'message')
+    readonly_fields = ('created_at',)
     list_per_page = 25
-    ordering = ['-created_at']
+    ordering = ('-created_at',)
     
-    def user_email(self, obj):
-        return obj.user.email if obj.user else 'No User'
-    user_email.short_description = 'Email'
-    user_email.admin_order_field = 'user__email'
-    
-    def user_full_name(self, obj):
-        return obj.user.fullName if obj.user and obj.user.fullName else 'Not Set'
-    user_full_name.short_description = 'Full Name'
-    user_full_name.admin_order_field = 'user__fullName'
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('user')
+    def message_preview(self, obj):
+        if obj.message:
+            return obj.message[:100] + '...' if len(obj.message) > 100 else obj.message
+        return "No message"
+    message_preview.short_description = 'Message Preview'
     
     fieldsets = (
-        ('User Information', {
-            'fields': ('user',)
+        ('Contact Information', {
+            'fields': ('name', 'email')
         }),
-        ('Access Control', {
-            'fields': ('is_enabled', 'notes'),
-            'description': 'Enable or disable access to the main application for this user.'
+        ('Message Details', {
+            'fields': ('subject', 'message')
         }),
-        ('Timestamps', {
-            'fields': ('enabled_date', 'disabled_date', 'created_at', 'updated_at'),
+        ('Timestamp', {
+            'fields': ('created_at',),
             'classes': ('collapse',)
         }),
     )
     
     def has_add_permission(self, request):
-        return True
+        return False  # Contact us requests should only come from the form
     
     def has_change_permission(self, request, obj=None):
-        return True
-    
-    def has_delete_permission(self, request, obj=None):
-        return True
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('user')
+        return False  # Make them read-only in admin
+
+class AccessControllerAdmin(admin.ModelAdmin):
+    list_display = ('email', 'force_advanced_locked', 'has_website_access', 'description', 'created_at', 'updated_at')
+    list_editable = ('force_advanced_locked', 'has_website_access')
+    search_fields = ('description', 'email__email')
+    list_filter = ('created_at', 'updated_at', 'force_advanced_locked', 'has_website_access')
+    ordering = ('-created_at',)
 
 admin.site.register(user, usersAdmin)
 admin.site.register(Token)
 admin.site.register(DataShare, DataShareAdmin)
 admin.site.register(ShareNotification, ShareNotificationAdmin)
-admin.site.register(WebsiteAccess, WebsiteAccessAdmin)
+admin.site.register(AccessController, AccessControllerAdmin)
 
 

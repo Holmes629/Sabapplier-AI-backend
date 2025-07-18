@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from .models import user, Token, DataShare, ShareNotification
+import uuid
 
 User = get_user_model()
 
@@ -18,6 +19,11 @@ class UserSerializer(serializers.ModelSerializer):
     caste_certificate_file_url = serializers.SerializerMethodField()
     pwd_certificate_file_url = serializers.SerializerMethodField()
     domicile_certificate_file_url = serializers.SerializerMethodField()
+    
+    # Expose all document_urls as a dictionary
+    all_documents = serializers.SerializerMethodField()
+
+    effective_successful_referrals = serializers.SerializerMethodField()
 
     class Meta:
         model = user
@@ -28,11 +34,24 @@ class UserSerializer(serializers.ModelSerializer):
             'correspondenceAddress', 'phone_number', 'alt_phone_number',
             'google_profile_picture', 'document_urls', 'document_texts',
             'extra_details',
+            # New autofill fields
+            'hasChangedName', 'changedNameDetail', 'motherTongue',
+            # Referral system fields
+            'referral_code', 'referred_by', 'successful_referrals',
             # Individual document fields for frontend
             'passport_size_photo_file_url', 'aadhaar_card_file_url', 'pan_card_file_url',
             'signature_file_url', '_10th_certificate_file_url', '_12th_certificate_file_url',
             'graduation_certificate_file_url', 'left_thumb_file_url', 'caste_certificate_file_url',
-            'pwd_certificate_file_url', 'domicile_certificate_file_url'
+            'pwd_certificate_file_url', 'domicile_certificate_file_url',
+            # New: all documents
+            'all_documents',
+            # New: custom doc category mapping
+            'custom_doc_categories',
+            'highest_education',
+            # New field for feature gating
+            'effective_successful_referrals',
+            # Website access fields
+            'has_website_access',
         ]
 
     def _get_document_url(self, obj, field_name):
@@ -82,6 +101,20 @@ class UserSerializer(serializers.ModelSerializer):
     
     def get_domicile_certificate_file_url(self, obj):
         return self._get_document_url(obj, 'domicile_certificate_file_url')
+
+    def get_all_documents(self, obj):
+        print("DEBUG: document_urls =", obj.document_urls)
+        docs = {}
+        email_prefix = obj.email.split('@')[0] if obj.email else ''
+        for k, v in (obj.document_urls or {}).items():
+            print("DEBUG: key =", k, "value =", v)
+            if k.startswith(email_prefix + '_'):
+                norm_key = k[len(email_prefix) + 1:]
+            else:
+                norm_key = k
+            docs[norm_key] = v
+        print("DEBUG: all_documents to return =", docs)
+        return docs
         # extra_kwargs = {
         #     'fullName': {'required': False, 'allow_null': True, 'allow_blank': True},
         #     'dateofbirth': {'required': False, 'allow_null': True},
@@ -108,6 +141,14 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+    def get_effective_successful_referrals(self, obj):
+        if getattr(obj, 'force_advanced_locked', False):
+            return 0
+        total_users = user.objects.count()
+        if total_users < 100:
+            return 2
+        return obj.successful_referrals or 0
+
 class TokenSerializer(serializers.ModelSerializer):
     class Meta:
         model = Token
@@ -116,17 +157,31 @@ class TokenSerializer(serializers.ModelSerializer):
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     email = serializers.EmailField(required=True)
+    referred_by = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = user
-        fields = ('email', 'password')
+        fields = ('email', 'password', 'referred_by', 'highest_education')
 
     def create(self, validated_data):
         if 'fullName' not in validated_data or validated_data.get('fullName') == 'undefined':
              validated_data['fullName'] = ""
         if user.objects.filter(email=validated_data['email']).exists():
              raise serializers.ValidationError({'email': 'This email is already registered...'})
-        return user.objects.create(**validated_data)
+        # Generate unique referral code
+        referral_code = str(uuid.uuid4())[:8]
+        validated_data['referral_code'] = referral_code
+        referred_by = validated_data.pop('referred_by', None)
+        if referred_by:
+            validated_data['referred_by'] = referred_by
+        new_user = user.objects.create(**validated_data)
+        # If referred_by is valid, increment inviter's successful_referrals
+        if referred_by:
+            inviter = user.objects.filter(referral_code=referred_by).first()
+            if inviter:
+                inviter.successful_referrals += 1
+                inviter.save()
+        return new_user
 
 class DataShareSerializer(serializers.ModelSerializer):
     class Meta:

@@ -2,6 +2,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views
+from .views import contact_us
 
 urlpatterns = [
     # OTP endpoints
@@ -35,6 +36,7 @@ urlpatterns = [
     path('share/refresh-data/', views.refresh_shared_data, name='refresh_shared_data'),
     path('notifications/', views.get_user_notifications, name='get_user_notifications'),
     path('shares/', views.get_user_shares, name='get_user_shares'),
+    path('notifications/mark-as-read/', views.mark_notification_as_read, name='mark_notification_as_read'),
     
     # Learning functionality endpoints
     path('extension/save-learned-data/', views.save_learned_form_data, name='save_learned_data'),
@@ -51,6 +53,9 @@ urlpatterns = [
 
     # Shared accounts endpoint
     path('shared-accounts/', views.get_shared_accounts, name='get_shared_accounts'),
+    
+    # Contact us endpoint
+    path('contact-us/', contact_us, name='contact-us'),
 ]
 
 if settings.DEBUG:
