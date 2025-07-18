@@ -321,6 +321,8 @@ def google_signup(request):
                 # Count total users and enable access for first 500 only
                 user_count = user.objects.count()
                 is_enabled = user_count <= 500
+                usr.has_website_access = is_enabled
+                usr.save(update_fields=["has_website_access"])
 
                 # Create WebsiteAccess entry for Google signup user
                 try:
@@ -403,6 +405,8 @@ def register(request):
         # Count total users and enable access for first 500 only
         user_count = user.objects.count()
         is_enabled = user_count <= 500
+        user_instance.has_website_access = is_enabled
+        user_instance.save(update_fields=["has_website_access"])
 
         try:
             # Create WebsiteAccess entry for the new user (disabled by default)
