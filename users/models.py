@@ -306,7 +306,6 @@ def create_accesscontroller_for_user(sender, instance, created, **kwargs):
         if not hasattr(instance, 'access_controllers') or instance.access_controllers.count() == 0:
             AccessController.objects.create(
                 email=instance,
-                name=f"Access for {instance.email}",
                 force_advanced_locked=instance.force_advanced_locked,
                 has_website_access=instance.has_website_access,
                 referral_code=instance.referral_code,

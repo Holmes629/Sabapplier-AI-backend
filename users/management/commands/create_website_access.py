@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from users.models import user, WebsiteAccess
 
 class Command(BaseCommand):
-    help = 'Create WebsiteAccess records for existing users who don\'t have them'
+    help = 'Create WebsiteAccess records for existing users who don\'t have them. First 500 users get access enabled.'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -12,7 +12,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        users_without_access = user.objects.filter(website_access__isnull=True)
+        users_without_access = user.objects.filter(website_access__isnull=True).order_by('id')
         
         if not users_without_access.exists():
             self.stdout.write(
@@ -21,14 +21,18 @@ class Command(BaseCommand):
             return
         
         created_count = 0
-        for usr in users_without_access:
+        for idx, usr in enumerate(users_without_access):
+            if options['enable_all']:
+                is_enabled = True
+            else:
+                is_enabled = idx < 500  # Enable for first 500 users only
             access_record = WebsiteAccess.objects.create(
                 user=usr,
-                is_enabled=options['enable_all'],
-                notes=f"Auto-created for existing user {'with access enabled' if options['enable_all'] else 'on waitlist'}"
+                is_enabled=is_enabled,
+                notes=f"Auto-created for existing user {'with access enabled' if is_enabled else 'on waitlist'}"
             )
             created_count += 1
-            self.stdout.write(f"Created WebsiteAccess for {usr.email}")
+            self.stdout.write(f"Created WebsiteAccess for {usr.email} (is_enabled={is_enabled})")
         
         self.stdout.write(
             self.style.SUCCESS(f'Successfully created {created_count} WebsiteAccess records')
