@@ -2,6 +2,15 @@ from django.db import models
 import os
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import random
+import string
+
+def generate_unique_referral_code():
+    while True:
+        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        if not user.objects.filter(referral_code=code).exists():
+            return code
+
 
 class Token(models.Model):
     id = models.AutoField(primary_key=True)
@@ -257,6 +266,8 @@ class AccessController(models.Model):
         # Sync to related user if email is set
         if self.email:
             user_changed = False
+            if not self.referral_code:
+                self.referral_code = generate_unique_referral_code()
             if self.email.force_advanced_locked != self.force_advanced_locked:
                 self.email.force_advanced_locked = self.force_advanced_locked
                 user_changed = True
