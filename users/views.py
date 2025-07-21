@@ -290,17 +290,16 @@ def google_signup(request):
                 referral_code=referral_code,
                 referred_by=referred_by,
             )
-            user_count = user.objects.count()
-            is_enabled = user_count <= 500
-            usr.has_website_access = is_enabled
-            usr.save(update_fields=["has_website_access"])
+            # Always enable website access for all users (waitlist disabled)
+            # usr.has_website_access = True; # COMMENTED OUT: Waitlist logic is disabled as per request
+            # usr.save(update_fields=["has_website_access"]); # COMMENTED OUT: Waitlist logic is disabled as per request
             try:
                 from .models import WebsiteAccess
                 website_access, created = WebsiteAccess.objects.get_or_create(
                     user=usr,
                     defaults={
-                        'is_enabled': is_enabled,  # Default disabled - admin needs to enable
-                        'notes': "User registered via Google OAuth and added to waitlist"
+                        'is_enabled': True,  # Always enabled
+                        'notes': "User registered via Google OAuth (waitlist bypassed)"
                     }
                 )
             except Exception as e:
@@ -364,19 +363,26 @@ def register(request):
         user_instance = serializer.save()
         
         # Count total users and enable access for first 500 only
-        user_count = user.objects.count()
-        is_enabled = user_count <= 500
-        user_instance.has_website_access = is_enabled
-        user_instance.save(update_fields=["has_website_access"])
+        # user_count = user.objects.count();
+        # is_enabled = user_count <= 500;
+        # user_instance.has_website_access = is_enabled;
+        # user_instance.save(update_fields=["has_website_access"]);
+        # Always enable website access for all users (waitlist disabled)
+        user_instance.has_website_access = True;
+        user_instance.save(update_fields=["has_website_access"]);
 
         try:
             # Create WebsiteAccess entry for the new user (disabled by default)
             from .models import WebsiteAccess
             website_access, created = WebsiteAccess.objects.get_or_create(
                 user=user_instance,
+                # defaults={
+                #     'is_enabled': is_enabled,  # Default disabled - admin needs to enable
+                #     'notes': "User registered and added to waitlist"
+                # }
                 defaults={
-                    'is_enabled': is_enabled,  # Default disabled - admin needs to enable
-                    'notes': "User registered and added to waitlist"
+                    'is_enabled': True,  # Always enabled
+                    'notes': "User registered (waitlist bypassed)"
                 }
             )
             print(f"WebsiteAccess {'created' if created else 'already exists'} for {user_instance.email}")
@@ -387,7 +393,7 @@ def register(request):
         return Response(
             {
                 "success": True,
-                "message": "You are now registered and added to our waitlist!",
+                "message": "You are now registered and have access! (waitlist bypassed)",
             },
             status=status.HTTP_200_OK,
         )
