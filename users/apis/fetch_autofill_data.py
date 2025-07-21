@@ -83,7 +83,7 @@ def get_autofill_data(raw_html, user_data):
         raw_autofill = "".join(response_stage_1.text.split('\n')[1:-1])
 
         print("🔹 Stage 1 autofill data (raw):", raw_autofill)
-        return raw_autofill
+        # return raw_autofill
 
         # Stage 2: Prompt to review and correct autofill data
         review_prompt = (
@@ -96,7 +96,6 @@ def get_autofill_data(raw_html, user_data):
             "3. For radio buttons, select the most relevant option based on user data\n"
             "4. For checkboxes, check the most relevant options based on user data, else check the last option.\n"
             "5. For file inputs, provide 'file url from the user data' as a filled value. Also give required file name, size of the file that needs to be uploaded in kb, pixel values that document need to have (only give in pixel values if they are in different units convert them to pixels)\n\n"
-            "- for ibps follow these for document editing  Photograph-JPG/JPEG-200x230px-20KBto50KB, Signature-JPG/JPEG-140x60px-10KBto20KB,  Handwritten Declaration-JPG/JPEG-800x400px-50KBto100KB\n"
             "- For radio buttons: match the id or name, for the applicable option and select the value closest to user data. If a match isn’t obvious, choose a logically relevant value. give value as checked or unchecked for applicable radio button\n"
             "- Correcting field values if needed\n"
             "- Ensuring logical matches for select/dropdowns, checkboxes, and files\n"
