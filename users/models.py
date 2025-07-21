@@ -204,7 +204,7 @@ class user(models.Model):
     fullName = models.CharField(max_length=255, null=True, blank=True)
     dateofbirth = models.DateField(null=True, blank=True)
     correspondenceAddress = models.TextField(null=True, blank=True)
-    phone_number = models.CharField(max_length=10, null=True, blank=True)
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
 
     # All other fields optional:
     fathersName = models.CharField(max_length=255, null=True, blank=True)
@@ -226,7 +226,7 @@ class user(models.Model):
     maritalStatus = models.CharField(max_length=255, choices=MaritalStatus_Choices, default='Select', null=True, blank=True)
     religion = models.CharField(max_length=255, null=True, blank=True)
     permanentAddress = models.TextField(null=True, blank=True)
-    alt_phone_number = models.CharField(max_length=10, null=True, blank=True)
+    alt_phone_number = models.CharField(max_length=20, null=True, blank=True)
     google_profile_picture = models.URLField(null=True, blank=True)
     document_urls = models.JSONField(default=dict, null=True, blank=True)
     document_texts = models.JSONField(default=dict, null=True, blank=True)
