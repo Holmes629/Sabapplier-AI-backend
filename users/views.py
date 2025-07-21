@@ -30,6 +30,8 @@ from .apis.ocr_endpoint import get_ocr_data
 from .apis.fetch_autofill_data import get_autofill_data
 from .apis.learning_api import process_learned_data_for_display, process_with_gemini
 from .dropbox_storage import DropboxStorage  # import your custom storage
+import uuid
+import jwt
 
 
 class users_view(viewsets.ModelViewSet):
@@ -194,190 +196,149 @@ def google_signup(request):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
         # Verify the Google credential
-        try:
-            # You'll need to set your Google OAuth client ID in settings
-            GOOGLE_CLIENT_ID = getattr(settings, "GOOGLE_CLIENT_ID", None)
-            if not GOOGLE_CLIENT_ID:
-                return Response(
-                    {
-                        "success": False,
-                        "message": "Google OAuth not configured.",
-                    },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-
-            idinfo = id_token.verify_oauth2_token(
-                credential, requests.Request(), GOOGLE_CLIENT_ID
-            )
-
-            # Extract comprehensive user data from Google
-            email = idinfo.get("email")
-            name = idinfo.get("name", "")
-            given_name = idinfo.get("given_name", "")
-            family_name = idinfo.get("family_name", "")
-            picture = idinfo.get("picture", "")
-            locale = idinfo.get("locale", "")
-            
-            # Create a full name from given_name and family_name if name is not available
-            if not name and (given_name or family_name):
-                name = f"{given_name} {family_name}".strip()
-
-            if not email:
-                return Response(
-                    {
-                        "success": False,
-                        "message": "Unable to get email from Google account.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            # Check if user already exists
-            try:
-                existing_user = user.objects.get(email=email)
-                
-                # Update existing user with Google data if fields are empty
-                updated = False
-                if not existing_user.fullName and name:
-                    existing_user.fullName = name
-                    updated = True
-                
-                # Update Google profile picture if available
-                if picture and not existing_user.google_profile_picture:
-                    existing_user.google_profile_picture = picture
-                    updated = True
-                
-                if updated:
-                    existing_user.save()
-                
-                # User exists, check if profile is complete
-                profile_complete = all(
-                    [
-                        existing_user.fullName,
-                        existing_user.dateofbirth,
-                        existing_user.correspondenceAddress,
-                        existing_user.phone_number,
-                    ]
-                )
-
-                if profile_complete:
-                    # User has complete profile, return login data with Google info
-                    return Response(
-                        {
-                            "success": True,
-                            "user": UserSerializer(existing_user).data,
-                            "needsProfileCompletion": False,
-                            "message": "Login successful",
-                            "googleData": {
-                                "name": name,
-                                "email": email,
-                                "picture": picture,
-                                "given_name": given_name,
-                                "family_name": family_name,
-                                "locale": locale
-                            }
-                        },
-                        status=status.HTTP_200_OK,
-                    )
-                else:
-                    # User exists but needs to complete profile
-                    return Response(
-                        {
-                            "success": True,
-                            "user": UserSerializer(existing_user).data,
-                            "email": email,
-                            "needsProfileCompletion": True,
-                            "message": "Please complete your profile",
-                            "googleData": {
-                                "name": name,
-                                "email": email,
-                                "picture": picture,
-                                "given_name": given_name,
-                                "family_name": family_name,
-                                "locale": locale
-                            }
-                        },
-                        status=status.HTTP_200_OK,
-                    )
-
-            except user.DoesNotExist:
-                # Create new user with Google data
-                import uuid
-                referral_code = str(uuid.uuid4())[:8]
-                # Ensure uniqueness
-                while user.objects.filter(referral_code=referral_code).exists():
-                    referral_code = str(uuid.uuid4())[:8]
-                referred_by = request.data.get('referred_by')
-                usr = user.objects.create(
-                    email=email,
-                    fullName=name,
-                    google_profile_picture=picture,  # Store Google profile picture
-                    password="",  # Placeholder password for Google users
-                    referral_code=referral_code,
-                    referred_by=referred_by,
-                )
-
-                # Count total users and enable access for first 500 only
-                user_count = user.objects.count()
-                is_enabled = user_count <= 500
-                usr.has_website_access = is_enabled
-                usr.save(update_fields=["has_website_access"])
-
-                # Create WebsiteAccess entry for Google signup user
-                try:
-                    from .models import WebsiteAccess
-                    website_access, created = WebsiteAccess.objects.get_or_create(
-                        user=usr,
-                        defaults={
-                            'is_enabled': is_enabled,  # Default disabled - admin needs to enable
-                            'notes': "User registered via Google OAuth and added to waitlist"
-                        }
-                    )
-                    print(f"WebsiteAccess {'created' if created else 'already exists'} for Google user {usr.email}")
-                except Exception as e:
-                    print(f"Error creating WebsiteAccess for Google user {usr.email}: {e}")
-
-                # If referred_by is valid, increment inviter's successful_referrals
-                if referred_by:
-                    inviter = user.objects.filter(referral_code=referred_by).first()
-                    if inviter:
-                        inviter.successful_referrals += 1
-                        inviter.save()
-
-                return Response(
-                    {
-                        "success": True,
-                        "user": UserSerializer(usr).data,
-                        "email": email,
-                        "needsProfileCompletion": True,
-                        "message": "Account created successfully. Please complete your profile.",
-                        "googleData": {
-                            "name": name,
-                            "email": email,
-                            "picture": picture,
-                            "given_name": given_name,
-                            "family_name": family_name,
-                            "locale": locale
-                        }
-                    },
-                    status=status.HTTP_201_CREATED,
-                )
-
-        except ValueError as e:
+        GOOGLE_CLIENT_ID = getattr(settings, "GOOGLE_CLIENT_ID", None)
+        if not GOOGLE_CLIENT_ID:
             return Response(
                 {
                     "success": False,
-                    "message": f"Invalid Google token: {str(e)}",
+                    "message": "Google OAuth not configured.",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        idinfo = id_token.verify_oauth2_token(
+            credential, requests.Request(), GOOGLE_CLIENT_ID
+        )
+        email = idinfo.get("email")
+        name = idinfo.get("name", "")
+        given_name = idinfo.get("given_name", "")
+        family_name = idinfo.get("family_name", "")
+        picture = idinfo.get("picture", "")
+        locale = idinfo.get("locale", "")
+        if not name and (given_name or family_name):
+            name = f"{given_name} {family_name}".strip()
+        if not email:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Unable to get email from Google account.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
+        try:
+            existing_user = user.objects.get(email=email)
+            updated = False
+            if not existing_user.fullName and name:
+                existing_user.fullName = name
+                updated = True
+            if picture and not existing_user.google_profile_picture:
+                existing_user.google_profile_picture = picture
+                updated = True
+            if updated:
+                existing_user.save()
+            profile_complete = all(
+                [
+                    existing_user.fullName,
+                    existing_user.dateofbirth,
+                    existing_user.correspondenceAddress,
+                    existing_user.phone_number,
+                ]
+            )
+            # --- JWT Token Generation ---
+            from datetime import datetime, timedelta
+            import jwt
+            payload = {
+                'user_id': existing_user.id,
+                'email': existing_user.email,
+                'exp': (datetime.utcnow() + timedelta(days=7)).timestamp(),
+                'iat': datetime.utcnow().timestamp(),
+            }
+            secret = getattr(settings, 'SECRET_KEY', 'sabapplier-secret')
+            token = jwt.encode(payload, secret, algorithm='HS256')
+            user_data = UserSerializer(existing_user).data
+            user_data['name'] = user_data.get('fullName', existing_user.fullName or existing_user.email)
+            user_data['fullName'] = user_data.get('fullName', existing_user.fullName or existing_user.email)
+            return Response(
+                {
+                    "success": True,
+                    "user": user_data,
+                    "token": token,
+                    "needsProfileCompletion": not profile_complete,
+                    "message": "Login successful",
+                    "googleData": {
+                        "name": name,
+                        "email": email,
+                        "picture": picture,
+                        "given_name": given_name,
+                        "family_name": family_name,
+                        "locale": locale
+                    }
+                },
+                status=status.HTTP_200_OK,
+            )
+        except user.DoesNotExist:
+            import uuid
+            referral_code = str(uuid.uuid4())[:8]
+            while user.objects.filter(referral_code=referral_code).exists():
+                referral_code = str(uuid.uuid4())[:8]
+            referred_by = request.data.get('referred_by')
+            usr = user.objects.create(
+                email=email,
+                fullName=name,
+                google_profile_picture=picture,
+                password="",
+                referral_code=referral_code,
+                referred_by=referred_by,
+            )
+            user_count = user.objects.count()
+            is_enabled = user_count <= 500
+            usr.has_website_access = is_enabled
+            usr.save(update_fields=["has_website_access"])
+            try:
+                from .models import WebsiteAccess
+                website_access, created = WebsiteAccess.objects.get_or_create(
+                    user=usr,
+                    defaults={
+                        'is_enabled': is_enabled,  # Default disabled - admin needs to enable
+                        'notes': "User registered via Google OAuth and added to waitlist"
+                    }
+                )
+            except Exception as e:
+                print('WebsiteAccess creation error:', e)
+            # --- JWT Token Generation for new user ---
+            from datetime import datetime, timedelta
+            import jwt
+            payload = {
+                'user_id': usr.id,
+                'email': usr.email,
+                'exp': (datetime.utcnow() + timedelta(days=7)).timestamp(),
+                'iat': datetime.utcnow().timestamp(),
+            }
+            secret = getattr(settings, 'SECRET_KEY', 'sabapplier-secret')
+            token = jwt.encode(payload, secret, algorithm='HS256')
+            user_data = UserSerializer(usr).data
+            user_data['name'] = user_data.get('fullName', usr.fullName or usr.email)
+            user_data['fullName'] = user_data.get('fullName', usr.fullName or usr.email)
+            return Response(
+                {
+                    "success": True,
+                    "user": user_data,
+                    "token": token,
+                    "needsProfileCompletion": True,
+                    "message": "Please complete your profile",
+                    "googleData": {
+                        "name": name,
+                        "email": email,
+                        "picture": picture,
+                        "given_name": given_name,
+                        "family_name": family_name,
+                        "locale": locale
+                    }
+                },
+                status=status.HTTP_200_OK,
+            )
     except Exception as e:
-        return Response(
-            {"success": False, "message": f"Google signup failed: {str(e)}"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        return Response({"success": False, "message": f"Google signup failed: {str(e)}"}, status=400)
 
 
 ######################  API End Points for Website UI ####################
@@ -654,15 +615,28 @@ def login_view(request):
                     usr.phone_number,
                 ]
             )
-            
-            # Return user data for frontend authentication state
+            # --- JWT Token Generation ---
+            payload = {
+                'user_id': usr.id,
+                'email': usr.email,
+                'exp': (datetime.utcnow() + timedelta(days=7)).timestamp(),
+                'iat': datetime.utcnow().timestamp(),
+            }
+            secret = getattr(settings, 'SECRET_KEY', 'sabapplier-secret')
+            token = jwt.encode(payload, secret, algorithm='HS256')
+            # Normalize user data for extension compatibility
+            user_data = UserSerializer(usr).data
+            user_data['name'] = user_data.get('fullName', usr.fullName or usr.email)
+            user_data['fullName'] = user_data.get('fullName', usr.fullName or usr.email)
+            # Return user data and token for frontend authentication state
             return Response(
                 {
                     "success": True, 
                     "message": "You are now logged in!",
-                    "user": UserSerializer(usr).data,
+                    "user": user_data,
                     "needsProfileCompletion": not profile_complete,
-                    "email": usr.email
+                    "email": usr.email,
+                    "token": token,
                 },
                 status=status.HTTP_200_OK,
             )
