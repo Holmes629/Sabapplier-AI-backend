@@ -62,7 +62,6 @@ def get_autofill_data(raw_html, user_data):
             "- For file inputs: if user JSON contains file URL or document name, assign it. Else, use 'NA'.\n"
             "- For checkboxes: assign 'checked' if the value applies to user, otherwise 'unchecked'.\n"
             "- Always include 'type': 'select', 'file', 'checkbox', 'radio', or 'input' as appropriate.\n"
-            "- for ibps follow these for document editing  Photograph-JPG/JPEG-200x230px-20KBto50KB, Signature-JPG/JPEG-140x60px-10KBto20KB,  Handwritten Declaration-JPG/JPEG-800x400px-50KBto100KB\n"
             "[\n"
             "  {'input[name=\"username\"]': 'JohnDoe', 'type': 'input'},\n"
             "  {'input[name=\"email\"]': 'john@email.com', 'type': 'input'},\n"
