@@ -28,7 +28,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = user
         fields = [
-            'email', 'password', 'fullName', 'fathersName', 'mothersName', 
+            'email', 'password', 'first_name', 'middle_name', 'last_name', 'fullName', 'fathersName', 'mothersName', 
             'gender', 'dateofbirth', 'category', 'disability', 'nationality', 
             'domicileState', 'district', 'mandal', 'pincode', 'maritalStatus', 'religion', 'permanentAddress', 
             'correspondenceAddress', 'phone_number', 'alt_phone_number',
@@ -138,6 +138,11 @@ class UserSerializer(serializers.ModelSerializer):
                 instance.set_password(value)
             else:
                 setattr(instance, attr, value)
+        # Optionally, update fullName for backward compatibility
+        if (
+            validated_data.get('first_name') or validated_data.get('last_name')
+        ):
+            instance.fullName = f"{validated_data.get('first_name', '')} {validated_data.get('middle_name', '')} {validated_data.get('last_name', '')}".strip()
         instance.save()
         return instance
 
@@ -166,6 +171,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         if 'fullName' not in validated_data or validated_data.get('fullName') == 'undefined':
              validated_data['fullName'] = ""
+        # Optionally, set fullName from first/middle/last name
+        if (
+            validated_data.get('first_name') or validated_data.get('last_name')
+        ):
+            validated_data['fullName'] = f"{validated_data.get('first_name', '')} {validated_data.get('middle_name', '')} {validated_data.get('last_name', '')}".strip()
         if user.objects.filter(email=validated_data['email']).exists():
              raise serializers.ValidationError({'email': 'This email is already registered...'})
         # Generate unique referral code

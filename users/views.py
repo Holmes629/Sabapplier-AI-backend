@@ -407,9 +407,13 @@ def update_data(request):
     try:
         userData = request.data.copy()
         
-        # Map frontend field names to backend model field names
-        if 'address' in userData:
-            userData['correspondenceAddress'] = userData.pop('address')
+        # In update_data, map 'first_name', 'middle_name', 'last_name' from frontend to backend
+        if 'first_name' in userData:
+            userData['first_name'] = userData.pop('first_name')
+        if 'middle_name' in userData:
+            userData['middle_name'] = userData.pop('middle_name')
+        if 'last_name' in userData:
+            userData['last_name'] = userData.pop('last_name')
         if 'fullname' in userData:
             userData['fullName'] = userData.pop('fullname')
             
