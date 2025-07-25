@@ -238,7 +238,7 @@ class user(models.Model):
     highest_education = models.CharField(max_length=32, choices=Education_Choices, null=True, blank=True)
 
     def __str__(self):
-        return self.email
+        return self.email or f"User {self.pk}"
 
 
 class ContactUsRequest(models.Model):
@@ -263,7 +263,9 @@ class AccessController(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"AccessController for {self.email}" 
+        return f"AccessController for {self.email or 'Unknown'}"
+
+
 
     def save(self, *args, **kwargs):
         # Sync to related user if email is set
