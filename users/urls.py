@@ -20,6 +20,7 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('update/', views.update_data, name='update_data'),
     path('delete/', views.delete_data, name='delete_data'),
+    path('delete-account/', views.delete_account, name='delete_account'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('check-access/', views.check_access_status, name='check_access_status'),
