@@ -236,14 +236,10 @@ def google_signup(request):
                 updated = True
             if updated:
                 existing_user.save()
-            profile_complete = all(
-                [
-                    existing_user.fullName,
-                    existing_user.dateofbirth,
-                    existing_user.correspondenceAddress,
-                    existing_user.phone_number,
-                ]
-            )
+            # For existing users, only require fullName to be present
+            # Other fields (dateofbirth, correspondenceAddress, phone_number) are optional
+            # This allows existing users to access the app without forcing profile completion
+            profile_complete = bool(existing_user.fullName)
             # --- JWT Token Generation ---
             from datetime import datetime, timedelta
             import jwt

@@ -90,24 +90,24 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-# Uncomment below for PostgreSQL production database
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#         'NAME': 'defaultdb',
-#         'USER': 'avnadmin',
-#         'PASSWORD': AIVEN_SERVICE_PASSWORD,
-#         'HOST': 'test-pg0001-amgens-42ab.h.aivencloud.com',
-#         'PORT': '24554',
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+
+# Uncomment below for PostgreSQL production database
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'defaultdb',
+        'USER': 'avnadmin',
+        'PASSWORD': AIVEN_SERVICE_PASSWORD,
+        'HOST': 'test-pg0001-amgens-42ab.h.aivencloud.com',
+        'PORT': '24554',
+    }
+}
 
 
 # Password validation
