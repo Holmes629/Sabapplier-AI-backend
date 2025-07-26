@@ -1967,7 +1967,6 @@ def mark_notification_as_read(request):
         print(f"Mark notification as read error: {e}")
         return Response({"error": "Failed to mark notification as read"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def contact_us(request):
@@ -1997,3 +1996,66 @@ def contact_us(request):
         return Response({"success": "Message sent successfully."}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def delete_account(request):
+    print('Inside delete_account function')
+    try:
+        email = request.data.get("email")
+        if not email:
+            return Response(
+                {"success": False, "message": "Email is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        # Find the user
+        try:
+            usr = user.objects.get(email=email)
+        except user.DoesNotExist:
+            return Response(
+                {"success": False, "message": "User not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        
+        # Delete related data first
+        try:
+            # Delete data shares where user is sender or receiver
+            DataShare.objects.filter(sender_email=email).delete()
+            DataShare.objects.filter(receiver_email=email).delete()
+            
+            # Delete share notifications
+            ShareNotification.objects.filter(recipient_email=email).delete()
+            
+            # Delete access controllers
+            from .models import AccessController
+            AccessController.objects.filter(email=usr).delete()
+            
+            # Delete tokens
+            Token.objects.filter(user_id=usr.id).delete()
+            
+            print(f"Deleted related data for user {email}")
+        except Exception as e:
+            print(f"Error deleting related data: {e}")
+            # Continue with user deletion even if related data deletion fails
+        
+        # Delete the user
+        usr.delete()
+        
+        return Response(
+            {
+                "success": True,
+                "message": "Account deleted successfully. We're sorry to see you go!",
+            },
+            status=status.HTTP_200_OK,
+        )
+        
+    except Exception as e:
+        print(f"Error deleting account: {e}")
+        return Response(
+            {
+                "success": False,
+                "message": "An error occurred while deleting your account. Please try again.",
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
