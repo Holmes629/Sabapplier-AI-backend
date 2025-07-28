@@ -18,7 +18,7 @@ def get_autofill_data(raw_html, user_data):
         form_data = extract_form_only(raw_html)
         
         print("\nform length:", len(form_data))
-        MAX_HTML_CHARS = 100000 
+        MAX_HTML_CHARS = 32000 
         if len(form_data) > MAX_HTML_CHARS:
             form_data = form_data[:MAX_HTML_CHARS]
         
