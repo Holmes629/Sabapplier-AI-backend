@@ -17,6 +17,11 @@ def get_autofill_data(raw_html, user_data):
         api_key = "AIzaSyC_OPZO2FLYsAs-Gtvjx-5AQGYKBDUul5k"
         form_data = extract_form_only(raw_html)
         
+        print("\nform length:", len(form_data))
+        MAX_HTML_CHARS = 4000
+        if len(form_data) > MAX_HTML_CHARS:
+            form_data = form_data[:MAX_HTML_CHARS]
+        
         # If no API key is available, return mock autofill data for testing
         if not api_key:
             print("No Gemini API key found, returning mock autofill data")
