@@ -18,5 +18,17 @@ def main():
     execute_from_command_line(sys.argv)
 
 
+
+def lambda_handler(event, context):
+    from django.core.wsgi import get_wsgi_application
+    from mangum import Mangum  # Mangum bridges ASGI apps to Lambda
+    import os
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "myproject.settings")
+    app = get_wsgi_application()
+    handler = Mangum(app)
+    return handler(event, context)
+
+
 if __name__ == '__main__':
     main()
